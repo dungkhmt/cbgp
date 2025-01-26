@@ -366,64 +366,357 @@ class Neq implements ConstraintCP{
 }
 
 class DistanceAtLeast implements ConstraintCP{
+    String name;
+    VarIntCP x1, y1, x2, y2;
+    Map<VarIntCP, Integer> mVarIndex;
+    List<VarIntCP> variables;
+    double D;
 
     public DistanceAtLeast(VarIntCP x1, VarIntCP y1, VarIntCP x2, VarIntCP y2, double D){
-
+        this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2; this.D = D;
+        mVarIndex = new HashMap<>();
+        mVarIndex.put(x1, 0); mVarIndex.put(y1, 1); mVarIndex.put(x2, 2); mVarIndex.put(y2, 3);
+        variables = new ArrayList<>();
+        variables.add(x1); variables.add(y1); variables.add(x2); variables.add(y2);
     }
     @Override
     public boolean contains(VarIntCP x) {
-        return false;
+        return mVarIndex.get(x) != null;
     }
 
     @Override
     public List<VarIntCP> getVariables() {
-        return null;
+        return variables;
+    }
+
+    double distance(int x1, int y1, int x2, int y2){
+        return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
     }
 
     @Override
     public boolean reviseAC3(VarIntCP x, CPModel m) {
+        if (x != this.x1 && x != this.y1 && x != this.x2 && x != this.y2)
+            return false;
+
+        List<Integer> R = new ArrayList<>();
+        if (x == this.x1) {
+            for (int x1 : m.getDomain(this.x1).getSet()) {
+                boolean ok = false;
+                begin: for (int y1 : m.getDomain(this.y1).getSet()) {
+                    for (int x2 : m.getDomain(this.x2).getSet()) {
+                        for (int y2 : m.getDomain(this.y2).getSet()) {
+                            if (distance(x1, y1, x2, y2) >= D) {
+                                ok = true;
+                                break begin;
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(x1);
+            }
+            for (int x1 : R) {
+                m.getDomain(this.x1).remove(x1);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.y1) {
+            for (int y1 : m.getDomain(this.y1).getSet()) {
+                boolean ok = false;
+                begin: for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int x2 : m.getDomain(this.x2).getSet()) {
+                        for (int y2 : m.getDomain(this.y2).getSet()) {
+                            if (distance(x1, y1, x2, y2) >= D) {
+                                ok = true;
+                                break begin;
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(y1);
+            }
+            for (int y1 : R) {
+                m.getDomain(this.y1).remove(y1);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.x2) {
+            for (int x2 : m.getDomain(this.x2).getSet()) {
+                boolean ok = false;
+                begin: for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int y1 : m.getDomain(this.y1).getSet()) {
+                        for (int y2 : m.getDomain(this.y2).getSet()) {
+                            if (distance(x1, y1, x2, y2) >= D) {
+                                ok = true;
+                                break begin;
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(x2);
+            }
+            for (int x2 : R) {
+                m.getDomain(this.x2).remove(x2);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.y2) {
+            for (int y2 : m.getDomain(this.y2).getSet()) {
+                boolean ok = false;
+                begin: for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int y1 : m.getDomain(this.y1).getSet()) {
+                        for (int x2 : m.getDomain(this.x2).getSet()) {
+                            if (distance(x1, y1, x2, y2) >= D) {
+                                ok = true;
+                                break begin;
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(y2);
+            }
+            for (int y2 : R) {
+                m.getDomain(this.y2).remove(y2);
+            }
+            return R.size() > 0;
+        }
+
         return false;
     }
 
     @Override
     public boolean satisfy(CPModel m) {
+        Set<Integer> X1 = m.getDomain(x1).getSet();
+        Set<Integer> Y1 = m.getDomain(y1).getSet();
+        Set<Integer> X2 = m.getDomain(x2).getSet();
+        Set<Integer> Y2 = m.getDomain(y2).getSet();
+        if (X1.size() == 1 && Y1.size() == 1 && X2.size() == 1 && Y2.size() == 1) {
+            for (int x1 : X1)
+                for (int y1 : Y1)
+                    for (int x2 : X2)
+                        for (int y2 : Y2) {
+                            if (distance(x1, y1, x2, y2) >= D) return true;
+                        }
+        }
         return false;
     }
 
     @Override
     public String name() {
-        return null;
+        return name;
     }
 }
 
 class AngleAtLeast implements ConstraintCP{
-
+    String name;
+    VarIntCP x1, y1, x2, y2, x3, y3;
+    Map<VarIntCP, Integer> mVarIndex;
+    List<VarIntCP> variables;
+    double D;
     public AngleAtLeast(VarIntCP x1, VarIntCP y1, VarIntCP x2, VarIntCP y2, VarIntCP x3, VarIntCP y3, double agl){
-
+        this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2; this.x3 = x3; this.y3 = y3; this.D = agl;
+        mVarIndex = new HashMap<>();
+        mVarIndex.put(x1, 0); mVarIndex.put(y1, 1); mVarIndex.put(x2, 2); mVarIndex.put(y2, 3); mVarIndex.put(x3, 4); mVarIndex.put(y3, 5);
+        variables = new ArrayList<>();
+        variables.add(x1); variables.add(y1); variables.add(x2); variables.add(y2); variables.add(x3); variables.add(y3);
     }
     @Override
     public boolean contains(VarIntCP x) {
-        return false;
+        return mVarIndex.get(x) != null;
     }
 
     @Override
     public List<VarIntCP> getVariables() {
-        return null;
+        return variables;
+    }
+
+    long squareDistance(int x1, int y1, int x2, int y2){
+        return 1L * (x2 - x1) * (x2 - x1) + 1L * (y2 - y1) * (y2 - y1);
+    }
+    double angle(int x1, int y1, int x2, int y2, int x3, int y3){
+        long a = squareDistance(x2, y2, x3, y3);
+        long b = squareDistance(x1, y1, x2, y2);
+        long c = squareDistance(x1, y1, x3, y3);
+        double cosA = (b + c - a) / (2 * Math.sqrt(b) * Math.sqrt(c));
+        return Math.acos(cosA) * 180 / Math.PI;
     }
 
     @Override
     public boolean reviseAC3(VarIntCP x, CPModel m) {
+        if (x != this.x1 && x != this.y1 && x != this.x2 && x != this.y2 && x != this.x3 && x != this.y3)
+            return false;
+        List<Integer> R = new ArrayList<>();
+        if (x == this.x1) {
+            for (int x1 : m.getDomain(this.x1).getSet()) {
+                boolean ok = false;
+                begin: for (int y1 : m.getDomain(this.y1).getSet()) {
+                    for (int x2 : m.getDomain(this.x2).getSet()) {
+                        for (int y2 : m.getDomain(this.y2).getSet()) {
+                            for (int x3 : m.getDomain(this.x3).getSet()) {
+                                for (int y3 : m.getDomain(this.y3).getSet()) {
+                                    if (angle(x1, y1, x2, y2, x3, y3) >= D) {
+                                        ok = true;
+                                        break begin;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(x1);
+            }
+            for (int x1 : R) {
+                m.getDomain(this.x1).remove(x1);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.y1) {
+            for (int y1 : m.getDomain(this.y1).getSet()) {
+                boolean ok = false;
+                begin: for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int x2 : m.getDomain(this.x2).getSet()) {
+                        for (int y2 : m.getDomain(this.y2).getSet()) {
+                            for (int x3 : m.getDomain(this.x3).getSet()) {
+                                for (int y3 : m.getDomain(this.y3).getSet()) {
+                                    if (angle(x1, y1, x2, y2, x3, y3) >= D) {
+                                        ok = true;
+                                        break begin;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(y1);
+            }
+            for (int y1 : R) {
+                m.getDomain(this.y1).remove(y1);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.x2) {
+            for (int x2 : m.getDomain(this.x2).getSet()) {
+                boolean ok = false;
+                begin: for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int y1 : m.getDomain(this.y1).getSet()) {
+                        for (int y2 : m.getDomain(this.y2).getSet()) {
+                            for (int x3 : m.getDomain(this.x3).getSet()) {
+                                for (int y3 : m.getDomain(this.y3).getSet()) {
+                                    if (angle(x1, y1, x2, y2, x3, y3) >= D) {
+                                        ok = true;
+                                        break begin;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(x2);
+            }
+            for (int x2 : R) {
+                m.getDomain(this.x2).remove(x2);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.y2) {
+            for (int y2 : m.getDomain(this.y2).getSet()) {
+                boolean ok = false;
+                begin: for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int y1 : m.getDomain(this.y1).getSet()) {
+                        for (int x2 : m.getDomain(this.x2).getSet()) {
+                            for (int x3 : m.getDomain(this.x3).getSet()) {
+                                for (int y3 : m.getDomain(this.y3).getSet()) {
+                                    if (angle(x1, y1, x2, y2, x3, y3) >= D) {
+                                        ok = true;
+                                        break begin;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(y2);
+            }
+            for (int y2 : R) {
+                m.getDomain(this.y2).remove(y2);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.x3) {
+            for (int x3 : m.getDomain(this.x3).getSet()) {
+                boolean ok = false;
+                begin: for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int y1 : m.getDomain(this.y1).getSet()) {
+                        for (int x2 : m.getDomain(this.x2).getSet()) {
+                            for (int y2 : m.getDomain(this.y2).getSet()) {
+                                for (int y3 : m.getDomain(this.y3).getSet()) {
+                                    if (angle(x1, y1, x2, y2, x3, y3) >= D) {
+                                        ok = true;
+                                        break begin;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(x3);
+            }
+            for (int x3 : R) {
+                m.getDomain(this.x3).remove(x3);
+            }
+            return R.size() > 0;
+        }
+        else if (x == this.y3) {
+            for (int y3 : m.getDomain(this.y3).getSet()) {
+                boolean ok = false;
+                begin:
+                for (int x1 : m.getDomain(this.x1).getSet()) {
+                    for (int y1 : m.getDomain(this.y1).getSet()) {
+                        for (int x2 : m.getDomain(this.x2).getSet()) {
+                            for (int y2 : m.getDomain(this.y2).getSet()) {
+                                for (int x3 : m.getDomain(this.x3).getSet()) {
+                                    if (angle(x1, y1, x2, y2, x3, y3) >= D) {
+                                        ok = true;
+                                        break begin;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (!ok) R.add(y3);
+            }
+            for (int y3 : R) {
+                m.getDomain(this.y3).remove(y3);
+            }
+            return R.size() > 0;
+        }
         return false;
     }
 
     @Override
     public boolean satisfy(CPModel m) {
+        Set<Integer> X1 = m.getDomain(x1).getSet();
+        Set<Integer> Y1 = m.getDomain(y1).getSet();
+        Set<Integer> X2 = m.getDomain(x2).getSet();
+        Set<Integer> Y2 = m.getDomain(y2).getSet();
+        Set<Integer> X3 = m.getDomain(x3).getSet();
+        Set<Integer> Y3 = m.getDomain(y3).getSet();
+        if (X1.size() == 1 && Y1.size() == 1 && X2.size() == 1 && Y2.size() == 1 && X3.size() == 1 && Y3.size() == 1) {
+            for (int x1 : X1)
+                for (int y1 : Y1)
+                    for (int x2 : X2)
+                        for (int y2 : Y2)
+                            for (int x3 : X3)
+                                for (int y3 : Y3) {
+                                    if (angle(x1, y1, x2, y2, x3, y3) >= D) return true;
+                                }
+        }
         return false;
     }
 
     @Override
     public String name() {
-        return null;
+        return name;
     }
 }
 class Domain{
