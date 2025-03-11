@@ -397,7 +397,7 @@ class DistanceAtLeast implements ConstraintCP{
         List<Integer> R = new ArrayList<>();
         if (x == this.x1) {
             for (int x1 : m.getDomain(this.x1).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> Y1 = m.getDomain(this.y1).getSet();
                 if (Y1.size() == 1) {
                     begin:
@@ -409,8 +409,11 @@ class DistanceAtLeast implements ConstraintCP{
                                 if (Y2.size() == 1) {
                                     for (int y2 : Y2) {
                                         if (Geometry.distance(x1, y1, x2, y2) >= D) {
-                                            ok = true;
+                                            ok = 1;
                                             break begin;
+                                        }
+                                        else {
+                                            ok = 0;
                                         }
                                     }
                                 }
@@ -418,7 +421,7 @@ class DistanceAtLeast implements ConstraintCP{
                         }
                     }
                 }
-                if (!ok) R.add(x1);
+                if (ok == 0) R.add(x1);
             }
             for (int x1 : R) {
                 m.getDomain(this.x1).remove(x1);
@@ -427,7 +430,7 @@ class DistanceAtLeast implements ConstraintCP{
         }
         else if (x == this.y1) {
             for (int y1 : m.getDomain(this.y1).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -439,8 +442,11 @@ class DistanceAtLeast implements ConstraintCP{
                                 if (Y2.size() == 1) {
                                     for (int y2 : Y2) {
                                         if (Geometry.distance(x1, y1, x2, y2) >= D) {
-                                            ok = true;
+                                            ok = 1;
                                             break begin;
+                                        }
+                                        else {
+                                            ok = 0;
                                         }
                                     }
                                 }
@@ -448,7 +454,7 @@ class DistanceAtLeast implements ConstraintCP{
                         }
                     }
                 }
-                if (!ok) R.add(y1);
+                if (ok == 0) R.add(y1);
             }
             for (int y1 : R) {
                 m.getDomain(this.y1).remove(y1);
@@ -457,7 +463,7 @@ class DistanceAtLeast implements ConstraintCP{
         }
         else if (x == this.x2) {
             for (int x2 : m.getDomain(this.x2).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -469,8 +475,11 @@ class DistanceAtLeast implements ConstraintCP{
                                 if (Y2.size() == 1) {
                                     for (int y2 : Y2) {
                                         if (Geometry.distance(x1, y1, x2, y2) >= D) {
-                                            ok = true;
+                                            ok = 1;
                                             break begin;
+                                        }
+                                        else {
+                                            ok = 0;
                                         }
                                     }
                                 }
@@ -478,7 +487,7 @@ class DistanceAtLeast implements ConstraintCP{
                         }
                     }
                 }
-                if (!ok) R.add(x2);
+                if (ok == 0) R.add(x2);
             }
             for (int x2 : R) {
                 m.getDomain(this.x2).remove(x2);
@@ -487,7 +496,7 @@ class DistanceAtLeast implements ConstraintCP{
         }
         else if (x == this.y2) {
             for (int y2 : m.getDomain(this.y2).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -499,8 +508,11 @@ class DistanceAtLeast implements ConstraintCP{
                                 if (X2.size() == 1) {
                                     for (int x2 : X2) {
                                         if (Geometry.distance(x1, y1, x2, y2) >= D) {
-                                            ok = true;
+                                            ok = 1;
                                             break begin;
+                                        }
+                                        else {
+                                            ok = 0;
                                         }
                                     }
                                 }
@@ -508,7 +520,7 @@ class DistanceAtLeast implements ConstraintCP{
                         }
                     }
                 }
-                if (!ok) R.add(y2);
+                if (ok == 0) R.add(y2);
             }
             for (int y2 : R) {
                 m.getDomain(this.y2).remove(y2);
@@ -577,7 +589,7 @@ class AngleAtLeast implements ConstraintCP{
         List<Integer> R = new ArrayList<>();
         if (x == this.x1) {
             for (int x1 : m.getDomain(this.x1).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> Y1 = m.getDomain(this.y1).getSet();
                 if (Y1.size() == 1) {
                     begin:
@@ -593,9 +605,10 @@ class AngleAtLeast implements ConstraintCP{
                                             for (int x3 : X3) {
                                                 for (int y3 : m.getDomain(this.y3).getSet()) {
                                                     if (Geometry.angle(x1, y1, x2, y2, x3, y3) >= D) {
-                                                        ok = true;
+                                                        ok = 1;
                                                         break begin;
                                                     }
+                                                    else ok = 0;
                                                 }
                                             }
                                         }
@@ -606,7 +619,7 @@ class AngleAtLeast implements ConstraintCP{
                     }
                 }
 
-                if (!ok) R.add(x1);
+                if (ok == 0) R.add(x1);
             }
             for (int x1 : R) {
                 m.getDomain(this.x1).remove(x1);
@@ -615,7 +628,7 @@ class AngleAtLeast implements ConstraintCP{
         }
         else if (x == this.y1) {
             for (int y1 : m.getDomain(this.y1).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -631,8 +644,11 @@ class AngleAtLeast implements ConstraintCP{
                                             for (int x3 : X3) {
                                                 for (int y3 : m.getDomain(this.y3).getSet()) {
                                                     if (Geometry.angle(x1, y1, x2, y2, x3, y3) >= D) {
-                                                        ok = true;
+                                                        ok = 1;
                                                         break begin;
+                                                    }
+                                                    else {
+                                                        ok = 0;
                                                     }
                                                 }
                                             }
@@ -644,7 +660,7 @@ class AngleAtLeast implements ConstraintCP{
                     }
                 }
 
-                if (!ok) R.add(y1);
+                if (ok == 0) R.add(y1);
             }
             for (int y1 : R) {
                 m.getDomain(this.y1).remove(y1);
@@ -653,7 +669,7 @@ class AngleAtLeast implements ConstraintCP{
         }
         else if (x == this.x2) {
             for (int x2 : m.getDomain(this.x2).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -669,9 +685,10 @@ class AngleAtLeast implements ConstraintCP{
                                             for (int x3 : X3) {
                                                 for (int y3 : m.getDomain(this.y3).getSet()) {
                                                     if (Geometry.angle(x1, y1, x2, y2, x3, y3) >= D) {
-                                                        ok = true;
+                                                        ok = 1;
                                                         break begin;
                                                     }
+                                                    else ok = 0;
                                                 }
                                             }
                                         }
@@ -681,7 +698,7 @@ class AngleAtLeast implements ConstraintCP{
                         }
                     }
                 }
-                if (!ok) {
+                if (ok == 0) {
                     R.add(x2);
                 }
             }
@@ -693,7 +710,7 @@ class AngleAtLeast implements ConstraintCP{
         }
         else if (x == this.y2) {
             for (int y2 : m.getDomain(this.y2).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -709,9 +726,10 @@ class AngleAtLeast implements ConstraintCP{
                                             for (int x3 : X3) {
                                                 for (int y3 : m.getDomain(this.y3).getSet()) {
                                                     if (Geometry.angle(x1, y1, x2, y2, x3, y3) >= D) {
-                                                        ok = true;
+                                                        ok = 1;
                                                         break begin;
                                                     }
+                                                    else ok = 0;
                                                 }
                                             }
                                         }
@@ -721,7 +739,7 @@ class AngleAtLeast implements ConstraintCP{
                         }
                     }
                 }
-                if (!ok) R.add(y2);
+                if (ok == 0) R.add(y2);
             }
             for (int y2 : R) {
                 m.getDomain(this.y2).remove(y2);
@@ -730,7 +748,7 @@ class AngleAtLeast implements ConstraintCP{
         }
         else if (x == this.x3) {
             for (int x3 : m.getDomain(this.x3).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -746,9 +764,10 @@ class AngleAtLeast implements ConstraintCP{
                                             for (int y2 : Y2) {
                                                 for (int y3 : m.getDomain(this.y3).getSet()) {
                                                     if (Geometry.angle(x1, y1, x2, y2, x3, y3) >= D) {
-                                                        ok = true;
+                                                        ok = 1;
                                                         break begin;
                                                     }
+                                                    else ok = 0;
                                                 }
                                             }
                                         }
@@ -759,7 +778,7 @@ class AngleAtLeast implements ConstraintCP{
                     }
                 }
 
-                if (!ok) R.add(x3);
+                if (ok == 0) R.add(x3);
             }
             for (int x3 : R) {
                 m.getDomain(this.x3).remove(x3);
@@ -768,7 +787,7 @@ class AngleAtLeast implements ConstraintCP{
         }
         else if (x == this.y3) {
             for (int y3 : m.getDomain(this.y3).getSet()) {
-                boolean ok = false;
+                int ok = -1;
                 Set<Integer> X1 = m.getDomain(this.x1).getSet();
                 if (X1.size() == 1) {
                     begin:
@@ -784,9 +803,10 @@ class AngleAtLeast implements ConstraintCP{
                                             for (int y2 : Y2) {
                                                 for (int x3 : m.getDomain(this.x3).getSet()) {
                                                     if (Geometry.angle(x1, y1, x2, y2, x3, y3) >= D) {
-                                                        ok = true;
+                                                        ok = 1;
                                                         break begin;
                                                     }
+                                                    else ok = 0;
                                                 }
                                             }
                                         }
@@ -796,7 +816,7 @@ class AngleAtLeast implements ConstraintCP{
                         }
                     }
                 }
-                if (!ok) R.add(y3);
+                if (ok == 0) R.add(y3);
             }
             for (int y3 : R) {
                 m.getDomain(this.y3).remove(y3);
@@ -869,7 +889,9 @@ class Domain{
 }
 
 interface CPObjective {
+    CPObjective clone();
     boolean isLessThan(CPObjective o);
+    void update(CPModel mv, VarIntCP x);
 }
 
 class CPModel{
@@ -910,7 +932,7 @@ class CPModel{
     }
     public CPModel clone(){
         CPModel model = new CPModel(this.log);
-        model.objective = this.objective;
+        model.objective = this.objective.clone();
         model.constraints = this.constraints;
         model.variables = this.variables;
         model.mVariable2Index = this.mVariable2Index;
@@ -933,11 +955,15 @@ class CPModel{
             System.out.println(var.name + " = " + D.toString());
         }
     }
+    public void updateObjective(VarIntCP x) {
+
+    }
     public void setValue(VarIntCP x, int v){
         if(mVariable2Index.get(x) == null) return;
         int i = mVariable2Index.get(x);
         domains[i].getSet().clear();
         domains[i].getSet().add(v);// singleton
+        updateObjective(x);
     }
     class VarIntCPComparator implements Comparator<VarIntCP>{
         @Override
@@ -947,12 +973,15 @@ class CPModel{
     }
     public void close(){
         Set<VarIntCP> Vars = new TreeSet<VarIntCP>(new VarIntCPComparator());
+        if (variables != null) {
+            Vars.addAll(variables);
+        }
         for(ConstraintCP c: constraints){
             List<VarIntCP> vars = c.getVariables();
-            for(VarIntCP var: vars) Vars.add(var);
+            Vars.addAll(vars);
         }
         variables = new ArrayList<VarIntCP>();
-        for(VarIntCP var: Vars) variables.add(var);
+        variables.addAll(Vars);
         mVariable2Index = new HashMap<VarIntCP, Integer>();
         for(int i = 0; i < variables.size(); i++) mVariable2Index.put(variables.get(i),i);
         domains = new Domain[variables.size()];
@@ -976,12 +1005,18 @@ class CPModel{
     }
     boolean fail(){
         for(Domain D: domains){
-            if(D.getSet().size() == 0) return true;
+            if(D.getSet().isEmpty()) return true;
         }
         return false;
     }
     boolean solution(){
         boolean ok = true;
+        for (VarIntCP x : variables) {
+            if (getDomain(x).getSet().size() != 1) {
+                ok = false;
+                break;
+            }
+        }
         for(ConstraintCP c: constraints)
             if(!c.satisfy(this)) {
                 ok = false; break;
@@ -1035,7 +1070,7 @@ class Propagator{
             //log.println("AC3 POP " + pi.toString() + ": " + constraints.get(pi.i).name() + " var " + variables.get(pi.j).name + " reviseAC3 = " + change);
 
             if(change){
-                if(m.getDomain(x).getSet().size() == 0) return false;
+                if(m.getDomain(x).getSet().isEmpty()) return false;
 
                 for(int i = 0; i < constraints.size(); i++) if(i != pi.i){
                     ConstraintCP c1 = constraints.get(i);
@@ -1064,36 +1099,49 @@ enum CPSearchOption {
     SEARCH_OPTIMIZE_CONFIGURATION
 }
 class Geometry {
-    static double distance(double x1, double y1, double x2, double y2) {
+    public static double distance(double x1, double y1, double x2, double y2) {
         return Math.hypot(x1 - x2, y1 - y2);
     }
-    static double squareDistance(double x1, double y1, double x2, double y2){
+    public static double squareDistance(double x1, double y1, double x2, double y2){
         return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
     }
-    static double angle(double x1, double y1, double x2, double y2, double x3, double y3){
+    public static double angle(double x1, double y1, double x2, double y2, double x3, double y3){
         double cosA = dot(x2 - x1, y2 - y1, x3 - x1, y3 - y1) / distance(x1, y1, x2, y2) / distance(x1, y1, x3, y3);
         return Math.acos(cosA);
     }
-    static double cross(double x1, double y1, double x2, double y2) {
+    public static double cross(double x1, double y1, double x2, double y2) {
         return x1 * y2 - y1 * x2;
     }
-    static double dot(double x1, double y1, double x2, double y2) {
+    public static double dot(double x1, double y1, double x2, double y2) {
         return x1 * x2 + y1 * y2;
     }
 }
 
 class Point2D {
+    public static Point2D infPoint = new Point2D(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
     private double x, y;
     public Point2D(double x, double y) {
         this.x = x;
         this.y = y;
     }
+
     public double distance(Point2D o) {
 //        return Math.hypot(x - o.x, y - o.y);
         return Geometry.distance(x, y, o.getX(), o.getY());
     }
     public double distance(Line2D line) {
         return (line.getA() * x + line.getB() * y + line.getC()) / Math.hypot(line.getA(), line.getB());
+    }
+
+    public double distance(Segment2D seg) {
+        Point2D x = seg.getX(), y = seg.getY();
+        if (Geometry.dot(x.getX() - this.x, x.getY() - this.y, y.getX() - this.x, y.getY() - this.y) < 0) {
+            return distance(x);
+        }
+        if (Geometry.dot(y.getX() - this.x, y.getY() - this.y, x.getX() - this.x, x.getY() - this.y) < 0) {
+            return distance(y);
+        }
+        return distance(new Line2D(x.getY() - y.getY(), y.getX() - x.getX(), x.cross(y)));
     }
 
     public double cross(Point2D o) {
@@ -1149,7 +1197,12 @@ class Line2D {
 
     public Point2D intersect(Line2D line) {
         double d = a * line.b - line.a * b;
-        if (d == 0) return null;
+        if (d == 0) {
+            if (b * line.c == line.b * c || a * line.c == line.a * c) {
+                return Point2D.infPoint;
+            }
+            return null;
+        }
         double x = (b * line.c - line.b * c) / d;
         double y = (c * line.a - line.c * a) / d;
         return new Point2D(x, y);
@@ -1180,9 +1233,22 @@ class Segment2D {
         Line2D l2 = new Line2D(seg.x.getY() - seg.y.getY(), seg.y.getX() - seg.x.getX(), seg.x.cross(seg.y));
         Point2D p = l1.intersect(l2);
         if (p == null) return null;
+        if (p == Point2D.infPoint) {
+            if (x.distance(seg.x) + x.distance(seg.y) > seg.x.distance(seg.y) + 1e-9) return null;
+            if (y.distance(seg.x) + y.distance(seg.y) > seg.x.distance(seg.y) + 1e-9) return null;
+            return p;
+        }
         if (p.distance(x) + p.distance(y) > x.distance(y) + 1e-9) return null;
         if (p.distance(seg.x) + p.distance(seg.y) > seg.x.distance(seg.y) + 1e-9) return null;
         return p;
+    }
+
+    public Point2D getX() {
+        return x;
+    }
+
+    public Point2D getY() {
+        return y;
     }
 }
 
@@ -1207,8 +1273,8 @@ class CPSearch{
     public void onFailure(CPModel m){
 
     }
-    public boolean isWorseSolution(CPModel m){
-        return false;
+    public boolean isBetterSolution(CPModel m){
+        return solution == null || m.objective.isLessThan(solution.objective);
     }
     public void search(CPModel m){
         propagator = new Propagator();
@@ -1231,24 +1297,35 @@ class CPSearch{
                 propagator.propagateAC3(mv);
                 if(mv.fail()){
                     //onFailure(mv);
-                }else if(isWorseSolution(mv) && option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION) {
-                    continue;
-                } else if(mv.solution()){
-                    onSolution(mv); solution = mv;
-                    //for(VarIntCP var: mv.getVariables()){
-                    //    solution.put(var.name,mv.getValue(var));
-                    //}
-                    if (option == CPSearchOption.SEARCH_ONE_CONFIGURATION) {
-                        break beginSearch;
+                } else {
+                    if(option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION && isBetterSolution(mv)) {
+                        continue;
                     }
-                    break;
-                    //log.println("Solution: ");
-                    //mv.print(log);
-                    //log.println("-----------");
-                }else {
-                    S.add(mv);
-                    //log.println("PUSH mv = "); mv.print(log);
-                    //System.out.println("PUSH m = "); mv.print();
+                    if (mv.solution()){
+                        onSolution(mv);
+                        if (option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION) {
+                            if (isBetterSolution(mv)) {
+                                solution = mv;
+                            }
+                        }
+                        else {
+                            solution = mv;
+                        }
+                        //for(VarIntCP var: mv.getVariables()){
+                        //    solution.put(var.name,mv.getValue(var));
+                        //}
+                        if (option == CPSearchOption.SEARCH_ONE_CONFIGURATION) {
+                            break beginSearch;
+                        }
+                        break;
+                        //log.println("Solution: ");
+                        //mv.print(log);
+                        //log.println("-----------");
+                    }else {
+                        S.add(mv);
+                        //log.println("PUSH mv = "); mv.print(log);
+                        //System.out.println("PUSH m = "); mv.print();
+                    }
                 }
             }
         }
@@ -1256,7 +1333,7 @@ class CPSearch{
         //if(log != null) log.close();
     }
 
-    public void printSolution(CPModel m) {
+    public void printSolution() {
 
     }
 }
@@ -1456,86 +1533,344 @@ class CPTest{
 
 }
 
+
 class GraphPresentationObjective implements CPObjective {
     private long intersectionCount;
-    private double distanceCenterMedian;
     private double maxSumDistanceAndInverse;
     private double minAngle;
     private double minDistanceVertexEdge;
+//    private double distanceCenterMedian;
+//    private Graph graph;
     GraphPresentationObjective() {
         intersectionCount = 0;
-        distanceCenterMedian = 0;
         maxSumDistanceAndInverse = Double.MIN_VALUE;
         minAngle = Double.MAX_VALUE;
         minDistanceVertexEdge = Double.MAX_VALUE;
+//        distanceCenterMedian = 0;
+//        this.graph = graph;
     }
+
+    @Override
+    public CPObjective clone() {
+        GraphPresentationObjective o = new GraphPresentationObjective();
+        o.intersectionCount = intersectionCount;
+//        o.distanceCenterMedian = distanceCenterMedian;
+        o.maxSumDistanceAndInverse = maxSumDistanceAndInverse;
+        o.minAngle = minAngle;
+        o.minDistanceVertexEdge = minDistanceVertexEdge;
+//        o.graph = graph;
+        return o;
+    }
+
     public double objective() {
-        return -minDistanceVertexEdge - minAngle * 100 + maxSumDistanceAndInverse * 10000 + distanceCenterMedian * 1000000 + intersectionCount * 10000000L;
+//        return distanceCenterMedian - minDistanceVertexEdge * 100 - minAngle * 10000 + maxSumDistanceAndInverse * 1000000L + intersectionCount * 100000000L;
+        return - minDistanceVertexEdge - minAngle * 100 + maxSumDistanceAndInverse * 10000L + intersectionCount * 1000000L;
     }
+
+    @Override
     public boolean isLessThan(CPObjective o) {
         GraphPresentationObjective other = (GraphPresentationObjective) o;
         return Double.compare(objective(), other.objective()) < 0;
     }
+
+    @Override
+    public void update(CPModel mv, VarIntCP x) {
+
+    }
+
+    public long getIntersectionCount() {
+        return intersectionCount;
+    }
+
+    public void setIntersectionCount(long intersectionCount) {
+        this.intersectionCount = intersectionCount;
+    }
+
+//    public double getDistanceCenterMedian() {
+//        return distanceCenterMedian;
+//    }
+//
+//    public void setDistanceCenterMedian(double distanceCenterMedian) {
+//        this.distanceCenterMedian = distanceCenterMedian;
+//    }
+
+    public double getMaxSumDistanceAndInverse() {
+        return maxSumDistanceAndInverse;
+    }
+
+    public void setMaxSumDistanceAndInverse(double maxSumDistanceAndInverse) {
+        this.maxSumDistanceAndInverse = maxSumDistanceAndInverse;
+    }
+
+    public double getMinAngle() {
+        return minAngle;
+    }
+
+    public void setMinAngle(double minAngle) {
+        this.minAngle = minAngle;
+    }
+
+    public double getMinDistanceVertexEdge() {
+        return minDistanceVertexEdge;
+    }
+
+    public void setMinDistanceVertexEdge(double minDistanceVertexEdge) {
+        this.minDistanceVertexEdge = minDistanceVertexEdge;
+    }
 }
 
-class GraphPresentationSearch extends CPSearch{
+class Edge {
+    private int x, y;
+    public Edge(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public boolean collide(Edge e) {
+        return x == e.x || x == e.y || y == e.x || y == e.y;
+    }
+    public int getRemain(int t) {
+        return x ^ y ^ t;
+    }
+    public int getX() {
+        return x;
+    }
+    public int getY() {
+        return y;
+    }
+}
+
+class Graph {
+    private int n;
+    private List<Edge> edges;
+    private List<Integer>[] adjacentList;
+    public Graph(int n, List<Edge> edges) {
+        this.n = n;
+        this.edges = edges;
+        adjacentList = new List[n];
+        for (int i = 0; i < n; i++) {
+            adjacentList[i] = new ArrayList<>();
+        }
+//        for (Edge e : edges) {
+        for (int i = 0; i < edges.size(); i++) {
+            adjacentList[edges.get(i).getX()].add(i);
+            adjacentList[edges.get(i).getY()].add(i);
+        }
+    }
+
+    public int getN() {
+        return n;
+    }
+
+    public List<Edge> getEdges() {
+        return edges;
+    }
+
+    public List<Integer>[] getAdjacentList() {
+        return adjacentList;
+    }
+}
+
+class GraphEntity {
     private VarIntCP[] x;
     private VarIntCP[] y;
     private int maxXCoordinate, minXCoordinate;
     private int maxYCoordinate, minYCoordinate;
-    private int minMaxDistance = Integer.MAX_VALUE;
-    private int minMaxCenterDifference = Integer.MAX_VALUE;
-    private CPModel bestSolution;
-    public GraphPresentationSearch(VarIntCP[] x, VarIntCP[] y, int minXCoordinate, int maxXCoordinate, int minYCoordinate, int maxYCoordinate, PrintWriter log){
-        super(log, CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION);
+    private Graph graph;
+    private HashMap<VarIntCP, Integer> varPointIndex;
+    public GraphEntity(VarIntCP[] x, VarIntCP[] y, List<Edge> edges, int minXCoordinate, int maxXCoordinate, int minYCoordinate, int maxYCoordinate) {
+
         this.x = x;
         this.y = y;
-        this.maxXCoordinate = maxXCoordinate;
         this.minXCoordinate = minXCoordinate;
-        this.maxYCoordinate = maxYCoordinate;
+        this.maxXCoordinate = maxXCoordinate;
         this.minYCoordinate = minYCoordinate;
+        this.maxYCoordinate = maxYCoordinate;
+        this.graph = new Graph(x.length, edges);
+        varPointIndex = new HashMap<>();
+        for (int i = 0; i < x.length; i++) {
+            varPointIndex.put(x[i], i);
+        }
+    }
+
+    public int getPointIndex(VarIntCP x) {
+        return varPointIndex.get(x);
+    }
+
+    public VarIntCP[] getX() {
+        return x;
+    }
+
+    public VarIntCP[] getY() {
+        return y;
+    }
+
+    public int getMaxXCoordinate() {
+        return maxXCoordinate;
+    }
+
+    public int getMinXCoordinate() {
+        return minXCoordinate;
+    }
+
+    public int getMaxYCoordinate() {
+        return maxYCoordinate;
+    }
+
+    public int getMinYCoordinate() {
+        return minYCoordinate;
+    }
+
+    public Graph getGraph() {
+        return graph;
+    }
+
+    public HashMap<VarIntCP, Integer> getVarPointIndex() {
+        return varPointIndex;
+    }
+}
+
+class GraphPresentationModel extends CPModel {
+    private GraphEntity entity;
+    public GraphPresentationModel(GraphEntity entity, PrintWriter log) {
+        super(log);
+        this.entity = entity;
+        objective = new GraphPresentationObjective();
+    }
+
+    public void loadVariables() {
+        int n = entity.getX().length;
+        for (int i = 0; i < n; i++) {
+            variables.add(entity.getX()[i]);
+            variables.add(entity.getY()[i]);
+        }
+    }
+
+    @Override
+    public CPModel clone() {
+        CPModel model = new GraphPresentationModel(entity, this.log);
+        model.objective = this.objective.clone();
+        model.constraints = this.constraints;
+        model.variables = this.variables;
+        model.mVariable2Index = this.mVariable2Index;
+        Domain[] clDomain = new Domain[domains.length];
+        for(int i = 0; i < domains.length; i++)
+            clDomain[i] = domains[i].clone();
+        model.domains = clDomain;
+        model.log = this.log;
+        return model;
+    }
+
+    @Override
+    public void updateObjective(VarIntCP t) {
+        GraphPresentationObjective o = (GraphPresentationObjective) objective;
+        int n = entity.getX().length;
+        Point2D[] points = new Point2D[n];
+        int x = entity.getPointIndex(t);
+        for (int i = 0; i < n; i++) {
+            Domain dx = getDomain(entity.getX()[i]);
+            Domain dy = getDomain(entity.getY()[i]);
+            if (dx.getSet().size() == 1 && dy.getSet().size() == 1) {
+                for (int a : dx.getSet()) {
+                    for (int b : dy.getSet()) {
+                        points[i] = new Point2D(a, b);
+                    }
+                }
+            }
+        }
+
+        if (points[x] == null) {
+            return;
+        }
+
+        int m = entity.getGraph().getEdges().size();
+        Segment2D[] segments = new Segment2D[m];
+        for (int i = 0; i < m; i++) {
+            Edge edge = entity.getGraph().getEdges().get(i);
+            int u = edge.getX();
+            int v = edge.getY();
+            if (points[u] != null && points[v] != null) {
+                segments[i] = new Segment2D(points[u], points[v]);
+            }
+        }
+
+        List<Point2D> adjPoints = new ArrayList<>();
+        for (int edgeIndex : entity.getGraph().getAdjacentList()[x]) {
+            Edge edge = entity.getGraph().getEdges().get(edgeIndex);
+            if (points[edge.getRemain(x)] != null) {
+                adjPoints.add(points[edge.getRemain(x)]);
+            }
+            if (segments[edgeIndex] != null) {
+                for (int i = 0; i < m; i++) {
+                    Edge edge2 = entity.getGraph().getEdges().get(i);
+                    if (i != edgeIndex && segments[i] != null) {
+                        Point2D p = segments[edgeIndex].intersect(segments[i]);
+                        if (p != null && (p == Point2D.infPoint || !edge.collide(edge2))) {
+                            o.setIntersectionCount(o.getIntersectionCount() + 1);
+                        }
+                    }
+                }
+
+                for (int i = 0; i < n; i++) {
+                    if (points[i] != null && i != x && i != edge.getRemain(x)) {
+                        double d = points[i].distance(segments[edgeIndex]);
+                        o.setMinDistanceVertexEdge(Math.min(o.getMinDistanceVertexEdge(), d));
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < m; i++) {
+            if (segments[i] != null) {
+                Edge edge = entity.getGraph().getEdges().get(i);
+                if (edge.getX() != i && edge.getY() != i) {
+                    o.setMinDistanceVertexEdge(points[x].distance(segments[i]));
+                }
+            }
+        }
+        o.setMinAngle(Math.min(o.getMinAngle(), points[x].minAngle(adjPoints)));
+        for (int i = 0; i < n; i++) {
+            if (points[i] != null && i != x) {
+                double d = points[i].distance(points[x]);
+                d += 10 / d;
+                o.setMaxSumDistanceAndInverse(Math.max(o.getMaxSumDistanceAndInverse(), d));
+            }
+        }
+    }
+
+    public GraphEntity getEntity() {
+        return entity;
+    }
+}
+
+class GraphPresentationSearch extends CPSearch{
+    CPModel bestSolution;
+    public GraphPresentationSearch(PrintWriter log){
+        super(log, CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION);
     }
     @Override
     public void onSolution(CPModel m){
-        int N = x.length;
-        int maxDistance = Integer.MIN_VALUE;
-        int totalX = 0, totalY = 0;
-        int[] a = new int[N], b = new int[N];
-        for (int i = 0; i < N; i++) {
-            a[i] = m.getValue(x[i]);
-            b[i] = m.getValue(y[i]);
-            for (int j = 0; j < i; j++) {
-                maxDistance = Math.max(maxDistance, (a[i] - a[j]) * (a[i] - a[j]) + (b[i] - b[j]) * (b[i] - b[j]));
-            }
-            totalX += a[i];
-            totalY += b[i];
-        }
-
-        // | totalX / n - (maxX - minX) / 2 | ~ | total * 2 - (maxX - minX) * n |
-        int centerDifference = Math.max(Math.abs(totalX * 2 - (maxXCoordinate - minXCoordinate) * N),
-                                        Math.abs(totalY * 2 - (maxYCoordinate - minYCoordinate) * N));
-
-        if (minMaxDistance > maxDistance || (minMaxDistance == maxDistance && minMaxCenterDifference > centerDifference)) {
-            minMaxDistance = maxDistance;
-            minMaxCenterDifference = centerDifference;
-            bestSolution = m;
-        }
-        for (int i = 0; i < N; i++) {
-            System.err.print("(" + m.getValue(x[i]) + " " + m.getValue(y[i]) + ") ");
-        }
-        System.err.println("-----------------\n");
+//        if (isBetterSolution(m)) {
+//            bestSolution = m;
+//        }
     }
 
-    @Override
-    public boolean isWorseSolution(CPModel m) {
-        return bestSolution != null && ((GraphPresentationObjective) m.objective).isLessThan((GraphPresentationObjective) bestSolution.objective);
-    }
+//    @Override
+//    public boolean isBetterSolution(CPModel m) {
+//        return bestSolution == null || m.objective.isLessThan(solution.objective);
+//    }
 
     @Override
-    public void printSolution(CPModel m) {
-        int n = x.length;
+    public void printSolution() {
+//        int n = x.length;
+//        for (int i = 0; i < n; i++) {
+//            System.out.println(x[i].name + " = " + m.getValue(x[i]) + " | " + y[i].name + " = " + bestSolution.getValue(y[i]));
+//        }
+
+        GraphPresentationModel model = (GraphPresentationModel) bestSolution;
+        int n = model.getEntity().getX().length;
         for (int i = 0; i < n; i++) {
-            System.out.println(x[i].name + " = " + m.getValue(x[i]) + " | " + y[i].name + " = " + bestSolution.getValue(y[i]));
+            System.out.println(model.getEntity().getX()[i].name + " = " + bestSolution.getValue(model.getEntity().getX()[i]) + " | "
+                                + model.getEntity().getY()[i].name + " = " + bestSolution.getValue(model.getEntity().getY()[i]));
         }
     }
 }
@@ -1543,56 +1878,44 @@ class GraphPresentationSearch extends CPSearch{
 class GraphPresentation{
     public static void main(String[] args){
         int n = 10; //nodes are numbered from 1, 2, . . ., n
-        List<Integer>[] A = new List[n];
-        CPModel m = new CPModel(null);
         VarIntCP[] x = new VarIntCP[n];
         VarIntCP[] y = new VarIntCP[n];
         for (int i = 0; i < n; i++) {
             x[i] = new VarIntCP(0, 20, "x[" + i + "]");
             y[i] = new VarIntCP(0, 20, "y[" + i + "]");
-            A[i] = new ArrayList();
         }
 
-        A[0].add(1);
-        A[1].add(2); A[1].add(4); A[1].add(7);
-        A[2].add(3); A[2].add(7); A[2].add(9);
-        A[3].add(5); A[3].add(6);
-        A[4].add(5); A[4].add(7); A[4].add(8); A[4].add(9);
-        A[6].add(8); A[6].add(9);
-        A[7].add(8);
+//        CPModel m = new CPModel(null);
+        List<Edge> edges = new ArrayList<>();
+        edges.add(new Edge(0, 1));
+        edges.add(new Edge(1, 2));
+        edges.add(new Edge(1, 4));
+        edges.add(new Edge(1, 7));
+        edges.add(new Edge(2, 3));
+        edges.add(new Edge(2, 7));
+        edges.add(new Edge(2, 9));
+        edges.add(new Edge(3, 5));
+        edges.add(new Edge(3, 6));
+        edges.add(new Edge(4, 5));
+        edges.add(new Edge(4, 7));
+        edges.add(new Edge(4, 8));
+        edges.add(new Edge(4, 9));
+        edges.add(new Edge(6, 8));
+        edges.add(new Edge(6, 9));
+        edges.add(new Edge(7, 8));
 
-        boolean[] used = new boolean[n];
-        for(int i = 0; i < n; i++) {
-            for(int j: A[i]) {
-                m.addConstraint(new DistanceAtLeast(x[i],y[i],x[j],y[j],10));
-                used[j] = true;
-            }
-            for (int j = 0; j < n; j++) {
-                if (used[j]) {
-                    used[j] = false;
-                    continue;
-                }
-                m.addConstraint(new DistanceAtLeast(x[i], y[i], x[j], y[j], 2));
-            }
-        }
-        for(int i = 0; i < n; i++){
-            for(int j1: A[i]){
-                for(int j2: A[i]){
-                    if(j1 < j2){
-                        m.addConstraint(new AngleAtLeast(x[i],y[i],x[j1],y[j1],x[j2],y[j2],20));
-                    }
-                }
-            }
-        }
+        GraphEntity entity = new GraphEntity(x, y, edges, 0, 20, 0, 20);
+        CPModel m = new GraphPresentationModel(entity, null);
 
         m.close();
         System.out.println(n);
 
         PrintWriter log = new PrintWriter(System.out);
 //        CPSearch se = new CPSearch(log);
-        CPSearch se = new GraphPresentationSearch(x, y, 0, 20, 0, 20, log);
+//        CPSearch se = new GraphPresentationSearch(x, y, A, 0, 20, 0, 20, log);
+        CPSearch se = new GraphPresentationSearch(log);
         se.search(m);
-        se.printSolution(m);
+        se.printSolution();
     }
 
 }
