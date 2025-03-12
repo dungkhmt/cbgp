@@ -973,14 +973,14 @@ class CPModel{
     }
     public void close(){
         Set<VarIntCP> Vars = new TreeSet<VarIntCP>(new VarIntCPComparator());
-        if (variables != null) {
-            Vars.addAll(variables);
-        }
+
         for(ConstraintCP c: constraints){
             List<VarIntCP> vars = c.getVariables();
             Vars.addAll(vars);
         }
-        variables = new ArrayList<VarIntCP>();
+        if (variables == null) {
+            variables = new ArrayList<VarIntCP>();
+        }
         variables.addAll(Vars);
         mVariable2Index = new HashMap<VarIntCP, Integer>();
         for(int i = 0; i < variables.size(); i++) mVariable2Index.put(variables.get(i),i);
@@ -989,6 +989,11 @@ class CPModel{
             domains[i] = new Domain(variables.get(i).getDomain().getSet());
         }
     }
+
+    CPObjective getObjective() {
+        return objective;
+    }
+
     List<ConstraintCP> getContraints(){
         return constraints;
     }
@@ -1012,15 +1017,19 @@ class CPModel{
     boolean solution(){
         boolean ok = true;
         for (VarIntCP x : variables) {
+//            System.err.println(getDomain(x).getSet().size() + " " + x.name);
             if (getDomain(x).getSet().size() != 1) {
-                ok = false;
-                break;
+//                ok = false;
+//                break;
+                return false;
             }
         }
         for(ConstraintCP c: constraints)
             if(!c.satisfy(this)) {
-                ok = false; break;
+//                ok = false; break;
+                return false;
             };
+//        System.out.println("a " + variables.size() + " " + ok);
         return ok;
     }
 }
@@ -1130,11 +1139,14 @@ class Point2D {
         return Geometry.distance(x, y, o.getX(), o.getY());
     }
     public double distance(Line2D line) {
-        return (line.getA() * x + line.getB() * y + line.getC()) / Math.hypot(line.getA(), line.getB());
+        return Math.abs(line.getA() * x + line.getB() * y + line.getC()) / Math.hypot(line.getA(), line.getB());
     }
 
     public double distance(Segment2D seg) {
         Point2D x = seg.getX(), y = seg.getY();
+        if (x.getX() == y.getX() && x.getY() == y.getY()) {
+            return distance(x);
+        }
         if (Geometry.dot(x.getX() - this.x, x.getY() - this.y, y.getX() - this.x, y.getY() - this.y) < 0) {
             return distance(x);
         }
@@ -1164,9 +1176,7 @@ class Point2D {
         for (Point2D p : points) {
             angle.add(Math.atan2(p.getY() - y, p.getX() - x));
         }
-        Collections.sort(id, (a, b) -> {
-            return Double.compare(angle.get(b), angle.get(a));
-        });
+        id.sort(Comparator.comparingDouble(angle::get));
 
         double min = Double.MAX_VALUE;
         double total = Math.PI * 2;
@@ -1176,6 +1186,44 @@ class Point2D {
         }
         min = Math.min(min, total);
         return min;
+    }
+
+    public int countCoincide(List<Point2D> points) {
+        int n = points.size();
+        List<Integer> id = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            id.add(i);
+        }
+        List<Double> angle = new ArrayList<>();
+        for (Point2D p : points) {
+            angle.add(Math.atan2(p.getY() - y, p.getX() - x));
+        }
+        id.sort(Comparator.comparingDouble(angle::get));
+
+        int cnt = 0;
+        int res = 0;
+        for (int i = 0; i + 1 < points.size(); i++) {
+            if (Math.abs(angle.get(id.get(i + 1)) - angle.get(id.get(i))) < 1e-15) {
+                cnt++;
+            }
+            else {
+                res += cnt * (cnt + 1) / 2;
+            }
+        }
+        res += cnt * (cnt + 1) / 2;
+        return res;
+    }
+
+    public int countCoincide(List<Point2D> points, Point2D point) {
+        int n = points.size();
+        double v = Math.atan2(point.getY() - y, point.getX() - x);
+        int cnt = 0;
+        for (Point2D p : points) {
+            if (Math.abs(Math.atan2(p.getY() - y, p.getX() - x) - v) < 1e-15) {
+                cnt++;
+            }
+        }
+        return cnt;
     }
 
     public double getX() {
@@ -1234,12 +1282,12 @@ class Segment2D {
         Point2D p = l1.intersect(l2);
         if (p == null) return null;
         if (p == Point2D.infPoint) {
-            if (x.distance(seg.x) + x.distance(seg.y) > seg.x.distance(seg.y) + 1e-9) return null;
-            if (y.distance(seg.x) + y.distance(seg.y) > seg.x.distance(seg.y) + 1e-9) return null;
+            if (x.distance(seg.x) + x.distance(seg.y) > seg.x.distance(seg.y) + 1e-15) return null;
+            if (y.distance(seg.x) + y.distance(seg.y) > seg.x.distance(seg.y) + 1e-15) return null;
             return p;
         }
-        if (p.distance(x) + p.distance(y) > x.distance(y) + 1e-9) return null;
-        if (p.distance(seg.x) + p.distance(seg.y) > seg.x.distance(seg.y) + 1e-9) return null;
+        if (p.distance(x) + p.distance(y) > x.distance(y) + 1e-15) return null;
+        if (p.distance(seg.x) + p.distance(seg.y) > seg.x.distance(seg.y) + 1e-15) return null;
         return p;
     }
 
@@ -1291,26 +1339,33 @@ class CPSearch{
             //System.out.println("POP m = "); m.print();
             VarIntCP x = m.selectNonSingletonVariable();
             if(x == null) continue;
+//            m.print();
+//            System.out.println("b " + x.name + " " + m.getDomain(x).getSet().size());
             for(int v: m.getDomain(x).getSet()){
                 CPModel mv = m.clone();
                 mv.setValue(x,v);
+//                System.out.print(v + " ");
+//                mv.print();
                 propagator.propagateAC3(mv);
                 if(mv.fail()){
                     //onFailure(mv);
                 } else {
-                    if(option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION && isBetterSolution(mv)) {
+                    if(option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION && !isBetterSolution(mv)) {
                         continue;
                     }
+                    System.out.println(option + " " + mv.getObjective() + " --- " + (solution != null ? solution.getObjective() : solution));
                     if (mv.solution()){
                         onSolution(mv);
-                        if (option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION) {
-                            if (isBetterSolution(mv)) {
-                                solution = mv;
-                            }
-                        }
-                        else {
-                            solution = mv;
-                        }
+                        solution = mv;
+//                        if (option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION) {
+//                            System.err.println(isBetterSolution(mv));
+//                            if (isBetterSolution(mv)) {
+//                                solution = mv;
+//                            }
+//                        }
+//                        else {
+//                            solution = mv;
+//                        }
                         //for(VarIntCP var: mv.getVariables()){
                         //    solution.put(var.name,mv.getValue(var));
                         //}
@@ -1551,6 +1606,15 @@ class GraphPresentationObjective implements CPObjective {
     }
 
     @Override
+    public String toString() {
+        return "Objective{" +
+                "intersection=" + intersectionCount +
+                ", maxSumDistanceAndInverse=" + maxSumDistanceAndInverse +
+                ", minAngle=" + minAngle +
+                ", minDistanceVertexEdge=" + minDistanceVertexEdge;
+    }
+
+    @Override
     public CPObjective clone() {
         GraphPresentationObjective o = new GraphPresentationObjective();
         o.intersectionCount = intersectionCount;
@@ -1564,7 +1628,7 @@ class GraphPresentationObjective implements CPObjective {
 
     public double objective() {
 //        return distanceCenterMedian - minDistanceVertexEdge * 100 - minAngle * 10000 + maxSumDistanceAndInverse * 1000000L + intersectionCount * 100000000L;
-        return - minDistanceVertexEdge - minAngle * 100 + maxSumDistanceAndInverse * 10000L + intersectionCount * 1000000L;
+        return - minDistanceVertexEdge - minAngle * 100D + maxSumDistanceAndInverse * 10000D + intersectionCount * 1000000D;
     }
 
     @Override
@@ -1690,6 +1754,7 @@ class GraphEntity {
         varPointIndex = new HashMap<>();
         for (int i = 0; i < x.length; i++) {
             varPointIndex.put(x[i], i);
+            varPointIndex.put(y[i], i);
         }
     }
 
@@ -1736,10 +1801,14 @@ class GraphPresentationModel extends CPModel {
         super(log);
         this.entity = entity;
         objective = new GraphPresentationObjective();
+        loadVariables();
     }
 
     public void loadVariables() {
         int n = entity.getX().length;
+        if (variables == null) {
+            variables = new ArrayList<>();
+        }
         for (int i = 0; i < n; i++) {
             variables.add(entity.getX()[i]);
             variables.add(entity.getY()[i]);
@@ -1794,11 +1863,22 @@ class GraphPresentationModel extends CPModel {
             }
         }
 
-        List<Point2D> adjPoints = new ArrayList<>();
+        List<Point2D> adjPoints = new ArrayList<>(), adjPoints2 = new ArrayList<>();
         for (int edgeIndex : entity.getGraph().getAdjacentList()[x]) {
             Edge edge = entity.getGraph().getEdges().get(edgeIndex);
-            if (points[edge.getRemain(x)] != null) {
-                adjPoints.add(points[edge.getRemain(x)]);
+            int y = edge.getRemain(x);
+            if (points[y] != null) {
+                adjPoints.add(points[y]);
+                adjPoints2.clear();
+                for (int edgeIndex2 : entity.getGraph().getAdjacentList()[y]) {
+                    Edge edge2 = entity.getGraph().getEdges().get(edgeIndex2);
+                    int z = edge2.getRemain(y);
+                    if (points[z] != null && z != x) {
+                        adjPoints2.add(points[z]);
+                    }
+                }
+                o.setMinAngle(Math.min(o.getMinAngle(), points[y].minAngle(adjPoints2)));
+                o.setIntersectionCount(o.getIntersectionCount() + points[y].countCoincide(adjPoints2, points[x]));
             }
             if (segments[edgeIndex] != null) {
                 for (int i = 0; i < m; i++) {
@@ -1822,16 +1902,17 @@ class GraphPresentationModel extends CPModel {
         for (int i = 0; i < m; i++) {
             if (segments[i] != null) {
                 Edge edge = entity.getGraph().getEdges().get(i);
-                if (edge.getX() != i && edge.getY() != i) {
-                    o.setMinDistanceVertexEdge(points[x].distance(segments[i]));
+                if (edge.getX() != x && edge.getY() != x) {
+                    o.setMinDistanceVertexEdge(Math.min(points[x].distance(segments[i]), o.getMinDistanceVertexEdge()));
                 }
             }
         }
         o.setMinAngle(Math.min(o.getMinAngle(), points[x].minAngle(adjPoints)));
+        o.setIntersectionCount(o.getIntersectionCount() + points[x].countCoincide(adjPoints));
         for (int i = 0; i < n; i++) {
             if (points[i] != null && i != x) {
                 double d = points[i].distance(points[x]);
-                d += 10 / d;
+                d += 5 / Math.sqrt(d);
                 o.setMaxSumDistanceAndInverse(Math.max(o.getMaxSumDistanceAndInverse(), d));
             }
         }
@@ -1847,17 +1928,6 @@ class GraphPresentationSearch extends CPSearch{
     public GraphPresentationSearch(PrintWriter log){
         super(log, CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION);
     }
-    @Override
-    public void onSolution(CPModel m){
-//        if (isBetterSolution(m)) {
-//            bestSolution = m;
-//        }
-    }
-
-//    @Override
-//    public boolean isBetterSolution(CPModel m) {
-//        return bestSolution == null || m.objective.isLessThan(solution.objective);
-//    }
 
     @Override
     public void printSolution() {
@@ -1866,23 +1936,23 @@ class GraphPresentationSearch extends CPSearch{
 //            System.out.println(x[i].name + " = " + m.getValue(x[i]) + " | " + y[i].name + " = " + bestSolution.getValue(y[i]));
 //        }
 
-        GraphPresentationModel model = (GraphPresentationModel) bestSolution;
+        GraphPresentationModel model = (GraphPresentationModel) solution;
         int n = model.getEntity().getX().length;
         for (int i = 0; i < n; i++) {
-            System.out.println(model.getEntity().getX()[i].name + " = " + bestSolution.getValue(model.getEntity().getX()[i]) + " | "
-                                + model.getEntity().getY()[i].name + " = " + bestSolution.getValue(model.getEntity().getY()[i]));
+            System.out.println(model.getEntity().getX()[i].name + " = " + solution.getValue(model.getEntity().getX()[i]) + " | "
+                                + model.getEntity().getY()[i].name + " = " + solution.getValue(model.getEntity().getY()[i]));
         }
     }
 }
 
 class GraphPresentation{
     public static void main(String[] args){
-        int n = 10; //nodes are numbered from 1, 2, . . ., n
+        int n = 5; //nodes are numbered from 1, 2, . . ., n
         VarIntCP[] x = new VarIntCP[n];
         VarIntCP[] y = new VarIntCP[n];
         for (int i = 0; i < n; i++) {
-            x[i] = new VarIntCP(0, 20, "x[" + i + "]");
-            y[i] = new VarIntCP(0, 20, "y[" + i + "]");
+            x[i] = new VarIntCP(0, 5, "x[" + i + "]");
+            y[i] = new VarIntCP(0, 5, "y[" + i + "]");
         }
 
 //        CPModel m = new CPModel(null);
@@ -1890,25 +1960,28 @@ class GraphPresentation{
         edges.add(new Edge(0, 1));
         edges.add(new Edge(1, 2));
         edges.add(new Edge(1, 4));
-        edges.add(new Edge(1, 7));
+//        edges.add(new Edge(1, 7));
         edges.add(new Edge(2, 3));
-        edges.add(new Edge(2, 7));
-        edges.add(new Edge(2, 9));
-        edges.add(new Edge(3, 5));
-        edges.add(new Edge(3, 6));
-        edges.add(new Edge(4, 5));
-        edges.add(new Edge(4, 7));
-        edges.add(new Edge(4, 8));
-        edges.add(new Edge(4, 9));
-        edges.add(new Edge(6, 8));
-        edges.add(new Edge(6, 9));
-        edges.add(new Edge(7, 8));
+        edges.add(new Edge(2, 4));
+//        edges.add(new Edge(2, 7));
+//        edges.add(new Edge(2, 9));
+        edges.add(new Edge(3, 4));
+//        edges.add(new Edge(3, 6));
+//        edges.add(new Edge(4, 5));
+//        edges.add(new Edge(4, 7));
+//        edges.add(new Edge(4, 8));
+//        edges.add(new Edge(4, 9));
+//        edges.add(new Edge(6, 8));
+//        edges.add(new Edge(6, 9));
+//        edges.add(new Edge(7, 8));
 
-        GraphEntity entity = new GraphEntity(x, y, edges, 0, 20, 0, 20);
+        GraphEntity entity = new GraphEntity(x, y, edges, 0, 5, 0, 5);
         CPModel m = new GraphPresentationModel(entity, null);
+
 
         m.close();
         System.out.println(n);
+//        m.print();
 
         PrintWriter log = new PrintWriter(System.out);
 //        CPSearch se = new CPSearch(log);
@@ -1923,7 +1996,7 @@ public class Main {
     public static void main(String[] args){
         //AppSudoku.main();
         //CSP1.main(null);
-        CSP1 app = new CSP1();
-        app.run();
+//        CSP1 app = new CSP1();
+        GraphPresentation.main(args);
     }
 }
