@@ -5,9 +5,11 @@ import java.util.*;
 
 interface Function{
     double evaluation();
+
     double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
     void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
 
+    void initPropagation();
 }
 class VarIntLS{
     int id;
@@ -92,8 +94,13 @@ class CBLSGPModel{
         // perform propagation to update functions in F
         varNode.assign(x,y);
     }
+    public void close(){
+        for(Function f: F) f.initPropagation();
+    }
 }
 class MinDistanceEdge implements Function{
+
+    // define appropriate data structures
 
     public MinDistanceEdge(Graph g, Map<Node, VarNodePosition> postions){
 
@@ -111,6 +118,60 @@ class MinDistanceEdge implements Function{
     @Override
     public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
 
+    }
+
+    @Override
+    public void initPropagation() {
+
+    }
+}
+
+class Distance2Nodes implements Function{
+    private VarNodePosition pos1;
+    private VarNodePosition pos2;
+    private double value;
+    public Distance2Nodes(VarNodePosition pos1, VarNodePosition pos2){
+        this.pos1 = pos1; this.pos2 = pos2;
+    }
+
+    @Override
+    public double evaluation() {
+        return value;
+    }
+
+    @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        if(varNodePosition == pos1){
+            double dx = newX - pos2.x_pos;
+            double dy = newY - pos2.y_pos;
+            return Math.sqrt(dx*dx+dy*dy);
+        }else if(varNodePosition == pos2){
+            double dx = newX - pos1.x_pos;
+            double dy = newY - pos1.y_pos;
+            return Math.sqrt(dx*dx+dy*dy);
+        }
+        return value; // not change
+    }
+
+    @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        if(varNodePosition != pos1 && varNodePosition != pos2) return;
+        if(varNodePosition == pos1){
+            double dx = newX - pos2.x_pos;
+            double dy = newY - pos2.y_pos;
+            value = Math.sqrt(dx*dx+dy*dy);
+        }else if(varNodePosition == pos2){
+            double dx = newX - pos1.x_pos;
+            double dy = newY - pos1.y_pos;
+            value = Math.sqrt(dx*dx+dy*dy);
+        }
+    }
+
+    @Override
+    public void initPropagation() {
+        double dx = (pos1.x_pos-pos2.x_pos);
+        double dy = pos1.y_pos-pos2.y_pos;
+        value = Math.sqrt(dx*dx+dy*dy);
     }
 }
 class MinAngle implements Function{
@@ -130,6 +191,11 @@ class MinAngle implements Function{
 
     @Override
     public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+
+    }
+
+    @Override
+    public void initPropagation() {
 
     }
 }
@@ -152,6 +218,11 @@ class NumberIntersectionEdges implements  Function{
 
     @Override
     public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+
+    }
+
+    @Override
+    public void initPropagation() {
 
     }
 }
@@ -202,21 +273,27 @@ public class Main {
         Set<Integer> DX = new HashSet<>();
         Set<Integer> DY = new HashSet<>();
 
+        CBLSGPModel model = new CBLSGPModel();
+
         for(int i = 0; i <= COL; i++) DX.add(i);
         for(int i = 0; i <= ROW; i++) DY.add(i);
         // varPos.get(node) is the coordinate of node, to be optimized, so that G is displayed nicely on the plane
         for(int i = 0; i < n; i++){
-            varPos.put(nodes.get(i), new VarNodePosition(i,DX,DY));
+            VarNodePosition z = new VarNodePosition(i,DX,DY);
+            varPos.put(nodes.get(i), z);
+            model.addVarNode(z);
         }
 
         MinDistanceEdge F1 = new MinDistanceEdge(G,varPos);// to be maximized
         MinAngle F2 = new MinAngle(G,varPos);// to be maximized
         NumberIntersectionEdges F3 = new NumberIntersectionEdges(G,varPos);// to be minimized
 
+        model.addFunction(F1); model.addFunction(F2); model.addFunction(F3);
+
         LexMultiFunctions F = new LexMultiFunctions();
         F.add(F1); F.add(F2); F.add(F3);
 
-        CBLSGPModel model = new CBLSGPModel();
+        model.close();
 
         // simple hill climbing
         for(int it = 1; it <= 100000; it++){
