@@ -211,7 +211,7 @@ interface Function{
     double evaluation();
     double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
     void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
-
+    void initPropagation();
 }
 class VarIntLS{
     int id;
@@ -223,6 +223,7 @@ class VarIntLS{
     public int value(){
         return _value;
     }
+
 }
 
 class VarNodePosition{
@@ -336,6 +337,9 @@ class CBLSGPModel{
 //            f.propagateOneNodeMove(varNode, x, y);
 //        }
     }
+    public void close(){
+        for(Function f: F) f.initPropagation();
+    }
 }
 class MinDistanceEdge implements Function{
     double minDistance;
@@ -441,6 +445,10 @@ class MinDistanceEdge implements Function{
             distances.put(eId, d);
             pq.add(new Pair<>(d, eId));
         }
+    }
+    @Override
+    public void initPropagation() {
+
     }
 }
 
@@ -680,6 +688,10 @@ class MinAngle implements Function {
         }
         v.assign(oldX, oldY);
     }
+    @Override
+    public void initPropagation() {
+
+    }
 }
 
 class NumberIntersectionEdges implements Function{
@@ -875,6 +887,61 @@ class NumberIntersectionEdges implements Function{
         totalIntersections += addedCount >> 1;
         v.assign(oldX, oldY);
     }
+    @Override
+    public void initPropagation() {
+
+    }
+}
+
+class Distance2Nodes implements Function {
+    private VarNodePosition pos1;
+    private VarNodePosition pos2;
+    private double value;
+
+    public Distance2Nodes(VarNodePosition pos1, VarNodePosition pos2) {
+        this.pos1 = pos1;
+        this.pos2 = pos2;
+    }
+
+    @Override
+    public double evaluation() {
+        return value;
+    }
+
+    @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        if (varNodePosition == pos1) {
+            double dx = newX - pos2.x_pos;
+            double dy = newY - pos2.y_pos;
+            return Math.sqrt(dx * dx + dy * dy);
+        } else if (varNodePosition == pos2) {
+            double dx = newX - pos1.x_pos;
+            double dy = newY - pos1.y_pos;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+        return value; // not change
+    }
+
+    @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        if (varNodePosition != pos1 && varNodePosition != pos2) return;
+        if (varNodePosition == pos1) {
+            double dx = newX - pos2.x_pos;
+            double dy = newY - pos2.y_pos;
+            value = Math.sqrt(dx * dx + dy * dy);
+        } else if (varNodePosition == pos2) {
+            double dx = newX - pos1.x_pos;
+            double dy = newY - pos1.y_pos;
+            value = Math.sqrt(dx * dx + dy * dy);
+        }
+    }
+
+    @Override
+    public void initPropagation() {
+        double dx = (pos1.x_pos - pos2.x_pos);
+        double dy = pos1.y_pos - pos2.y_pos;
+        value = Math.sqrt(dx * dx + dy * dy);
+    }
 }
 
 class LexMultiValues{
@@ -927,7 +994,9 @@ class LexMultiFunctions{
         for (Function f : F)
             f.propagateOneNodeMove(v, x, y);
     }
+
 }
+
 public class Main {
 
     public static void test1(){
@@ -982,6 +1051,7 @@ public class Main {
             VarNodePosition v = varPos.get(node);
             System.err.printf("Node %d: (%d, %d)\n", node.id, v.x(), v.y());
         }
+        model.close();
 
         // simple hill climbing
 
