@@ -1353,7 +1353,7 @@ class CPSearch{
                     if(option == CPSearchOption.SEARCH_OPTIMIZE_CONFIGURATION && !isBetterSolution(mv)) {
                         continue;
                     }
-                    System.out.println(option + " " + mv.getObjective() + " --- " + (solution != null ? solution.getObjective() : solution));
+//                    System.out.println(option + " " + mv.getObjective() + " --- " + (solution != null ? solution.getObjective() : solution));
                     if (mv.solution()){
                         onSolution(mv);
                         solution = mv;
@@ -1951,8 +1951,8 @@ class GraphPresentation{
         VarIntCP[] x = new VarIntCP[n];
         VarIntCP[] y = new VarIntCP[n];
         for (int i = 0; i < n; i++) {
-            x[i] = new VarIntCP(0, 5, "x[" + i + "]");
-            y[i] = new VarIntCP(0, 5, "y[" + i + "]");
+            x[i] = new VarIntCP(0, 6, "x[" + i + "]");
+            y[i] = new VarIntCP(0, 6, "y[" + i + "]");
         }
 
 //        CPModel m = new CPModel(null);
