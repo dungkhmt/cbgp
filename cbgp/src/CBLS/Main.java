@@ -39,6 +39,12 @@ class Point2D {
         this.y = y;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof Point2D other)) return false;
+        return Math.abs(x - other.x) < 1e-15 && Math.abs(y - other.y) < 1e-15;
+    }
+
     public double distance(Point2D o) {
 //        return Math.hypot(x - o.x, y - o.y);
         return Geometry.distance(x, y, o.getX(), o.getY());
@@ -62,7 +68,7 @@ class Point2D {
     }
 
     public double cross(Point2D o) {
-        return Geometry.cross(x, y, o.getY(), o.getX());
+        return Geometry.cross(x, y, o.getX(), o.getY());
     }
     public double cross(Point2D o1, Point2D o2) {
         return Geometry.cross(o1.getX() - x, o1.getY() - y, o2.getX() - x, o2.getY() - y);
@@ -182,17 +188,39 @@ class Segment2D {
     }
 
     public Point2D intersect(Segment2D seg) {
+//        if (x.getX() == seg.getX().getX() && x.getY() == seg.getX().getY() && y.getX() == seg.getY().getX() && y.getY() == seg.getY().getY() ||
+//            x.getX() == seg.getY().getX() && x.getY() == seg.getY().getY() && y.getX() == seg.getX().getX() && y.getY() == seg.getX().getY()) {
+//        if (x.equals(seg.x) && y.equals(seg.y) || x.equals(seg.y) && y.equals(seg.x)) {
+//            return null;
+//        }
         Line2D l1 = new Line2D(x.getY() - y.getY(), y.getX() - x.getX(), x.cross(y));
         Line2D l2 = new Line2D(seg.x.getY() - seg.y.getY(), seg.y.getX() - seg.x.getX(), seg.x.cross(seg.y));
+//        if (x.getX() == 17 && x.getY() == 10 && y.getX() == 11 && y.getY() == 15 && seg.getX().getX() == 13 && seg.getX().getY() == 16 && seg.getY().getX() == 10 && seg.getY().getY() == 6) {
+//            System.err.printf("(%f %f %f) (%f %f %f)\n", l1.getA(), l1.getB(), l1.getC(), l2.getA(), l2.getB(), l2.getC());
+//        }
+
         Point2D p = l1.intersect(l2);
         if (p == null) return null;
+        double d1 = x.distance(y), d2 = seg.x.distance(seg.y);
         if (p == Point2D.infPoint) {
-            if (x.distance(seg.x) + x.distance(seg.y) > seg.x.distance(seg.y) + 1e-15) return null;
-            if (y.distance(seg.x) + y.distance(seg.y) > seg.x.distance(seg.y) + 1e-15) return null;
-            return p;
+            double xx = x.distance(seg.x), yy = y.distance(seg.y), xy = x.distance(seg.y), yx = y.distance(seg.x);
+//            if (x.distance(seg.x) + x.distance(seg.y) < seg.x.distance(seg.y) + 1e-15) return x;
+            if (Math.abs(xx + xy - d2) < 1e-12) return x;
+//            if (y.distance(seg.x) + y.distance(seg.y) < seg.x.distance(seg.y) + 1e-15) return y;
+            if (Math.abs(yx + yy - d2) < 1e-12) return y;
+//            if (seg.x.distance(x) + seg.x.distance(y) < x.distance(y) + 1e-15) return seg.x;
+            if (Math.abs(xx + yx - d1) < 1e-12) return seg.x;
+//            if (seg.y.distance(x) + seg.y.distance(y) < x.distance(y) + 1e-15) return seg.y;
+            if (Math.abs(yy + xy - d1) < 1e-12) return seg.y;
+            return null;
         }
-        if (p.distance(x) + p.distance(y) > x.distance(y) + 1e-15) return null;
-        if (p.distance(seg.x) + p.distance(seg.y) > seg.x.distance(seg.y) + 1e-15) return null;
+
+//        if (x.equals(seg.x) || x.equals(seg.y) || y.equals(seg.x) || y.equals(seg.y)) {
+//            return null;
+//        }
+
+        if (p.distance(x) + p.distance(y) > d1 + 1e-12) return null;
+        if (p.distance(seg.x) + p.distance(seg.y) > d2 + 1e-12) return null;
         return p;
     }
 
@@ -698,33 +726,76 @@ class NumberIntersectionEdges implements Function{
     Graph g;
     Map<Node, VarNodePosition> positions;
     List<Edge> edges;
-    Map<Edge, Set<Edge>> intersectMap = new HashMap<>();
+    List<List<Edge>> adj;
+    Map<Integer, Set<Integer>> intersectMap = new HashMap<>();
     int totalIntersections = 0;
+
+    private int encode(Edge e) {
+        int u = Math.min(e.fromNode.id, e.toNode.id);
+        int v = Math.max(e.fromNode.id, e.toNode.id);
+        return u * g.getNodes().size() + v;
+    }
 
     public NumberIntersectionEdges(Graph g, Map<Node, VarNodePosition> positions){
         this.g = g;
         this.positions = positions;
-        edges = g.getEdges();
-        
+        adj = new ArrayList<>();
+        Map<Integer, Boolean> marked = new HashMap<>();
+        for (Node node : g.getNodes()) {
+            adj.add(node.id, new ArrayList<>());
+            for (Edge e : g.getEdges(node)) {
+                int eId = encode(e);
+                if (marked.containsKey(eId)) continue;
+                marked.put(eId, true);
+                adj.get(node.id).add(e);
+            }
+            marked.clear();
+        }
+        edges = new ArrayList<>();
+        for (Edge e : g.getEdges()) {
+            int eId = encode(e);
+            if (marked.containsKey(eId)) continue;
+            marked.put(eId, true);
+            edges.add(e);
+        }
+
         for (Edge e : edges)
-            intersectMap.put(e, new HashSet<>());
+            intersectMap.put(encode(e), new HashSet<>());
 
         for(int i = 0; i < edges.size(); i++) {
             Edge ei = edges.get(i);
+
             Segment2D si = createSegment(ei);
             if (si == null) continue;
             
             for(int j = i + 1; j < edges.size(); j++){
                 Edge ej = edges.get(j);
+                if (ej == null) continue;
+                if (ei.fromNode.id == ej.fromNode.id || ei.toNode.id == ej.toNode.id ||
+                    ei.fromNode.id == ej.toNode.id || ei.toNode.id == ej.fromNode.id) continue;
                 Segment2D sj = createSegment(ej);
+//                if (ei.fromNode.id == 6 && ei.toNode.id == 7 && ej.fromNode.id == 9 && ej.toNode.id == 10) {
+//                    System.err.printf("(%d %d %d %d %d %d) ", ei.fromNode.id, ei.toNode.id,
+//                            positions.get(ei.fromNode).x(), positions.get(ei.fromNode).y(),
+//                            positions.get(ei.toNode).x(), positions.get(ei.toNode).y());
+//                    System.err.printf("(%d %d %d %d %d %d) ", ej.fromNode.id, ej.toNode.id,
+//                        positions.get(ej.fromNode).x(), positions.get(ej.fromNode).y(),
+//                        positions.get(ej.toNode).x(), positions.get(ej.toNode).y());
+//                    Point2D p = si.intersect(sj);
+//                    if (p != null) {
+//                        System.err.printf("((%f %f) (%f %f)) ((%f %f) (%f %f)) %f %f\n", si.getX().getX(), si.getX().getY(), si.getY().getX(), si.getY().getY(),
+//                                sj.getX().getX(), sj.getX().getY(), sj.getY().getX(), sj.getY().getY(), p.getX(), p.getY());
+//                    }
+//                }
                 
                 if(sj != null && si.intersect(sj) != null) {
-                    intersectMap.get(ei).add(ej);
-                    intersectMap.get(ej).add(ei);
+                    intersectMap.get(encode(ei)).add(encode(ej));
+                    intersectMap.get(encode(ej)).add(encode(ei));
                     totalIntersections++;
                 }
             }
         }
+        System.err.println(totalIntersections);
     }
 
     private Segment2D createSegment(Edge e) {
@@ -743,13 +814,16 @@ class NumberIntersectionEdges implements Function{
     private int removeNodeIntersections(Node node) {
         int removedCount = 0;
         
-        List<Edge> nodeEdges = g.getEdges(node);
+        List<Edge> nodeEdges = adj.get(node.id);
         
         for (Edge e : nodeEdges) {
-            Set<Edge> intersectedEdges = intersectMap.get(e);
+//            Set<Edge> intersectedEdges = intersectMap.get(e);
+            Set<Integer> intersectedEdges = intersectMap.get(encode(e));
             removedCount += intersectedEdges.size();
-            for (Edge ie : intersectedEdges) {
-                intersectMap.get(ie).remove(e);
+//            for (Edge ie : intersectedEdges) {
+//                intersectMap.get(ie).remove(e);
+            for (Integer ie : intersectedEdges) {
+                intersectMap.get(ie).remove(encode(e));
             }
             intersectedEdges.clear();
         }
@@ -759,41 +833,52 @@ class NumberIntersectionEdges implements Function{
     
     private int addNodeIntersections(Node node) {
         int addedCount = 0;
-        List<Edge> nodeEdges = g.getEdges(node);
-        
+//        List<Edge> nodeEdges = g.getEdges(node);
+        List<Edge> nodeEdges = adj.get(node.id);
+
         for (Edge e : nodeEdges) {
             Segment2D se = createSegment(e);
             if (se == null) continue;
+            int eId = encode(e);
             for (Edge f : edges) {
                 if (f == e || nodeEdges.contains(f)) continue;
+                if (e.fromNode.id == f.fromNode.id || e.toNode.id == f.toNode.id ||
+                        e.fromNode.id == f.toNode.id || e.toNode.id == f.fromNode.id) continue;
+                if (encode(f) == eId) continue;
                 Segment2D sf = createSegment(f);
                 if (sf == null) continue;
                 
                 if (se.intersect(sf) != null) {
-                    intersectMap.get(e).add(f);
-                    intersectMap.get(f).add(e);
+                    int ei = encode(e), fi = encode(f);
+//                    intersectMap.get(e).add(f);
+//                    intersectMap.get(f).add(e);
+                    intersectMap.get(ei).add(fi);
+                    intersectMap.get(fi).add(ei);
                     addedCount++;
                 }
             }
         }
         
-        for (int i = 0; i < nodeEdges.size(); i++) {
-            Edge ei = nodeEdges.get(i);
-            Segment2D si = createSegment(ei);
-            if (si == null) continue;
-            
-            for (int j = i + 1; j < nodeEdges.size(); j++) {
-                Edge ej = nodeEdges.get(j);
-                Segment2D sj = createSegment(ej);
-                if (sj == null) continue;
-                
-                if (si.intersect(sj) != null) {
-                    intersectMap.get(ei).add(ej);
-                    intersectMap.get(ej).add(ei);
-                    addedCount++;
-                }
-            }
-        }
+//        for (int i = 0; i < nodeEdges.size(); i++) {
+//            Edge ei = nodeEdges.get(i);
+//            Segment2D si = createSegment(ei);
+//            if (si == null) continue;
+//
+//            for (int j = i + 1; j < nodeEdges.size(); j++) {
+//                Edge ej = nodeEdges.get(j);
+//                Segment2D sj = createSegment(ej);
+//                if (sj == null) continue;
+//
+//                if (si.intersect(sj) != null) {
+////                    intersectMap.get(ei).add(ej);
+////                    intersectMap.get(ej).add(ei);
+//                    int eiId = encode(ei), ejId = encode(ej);
+//                    intersectMap.get(eiId).add(ejId);
+//                    intersectMap.get(ejId).add(eiId);
+//                    addedCount++;
+//                }
+//            }
+//        }
         
         return addedCount;
     }
@@ -813,24 +898,27 @@ class NumberIntersectionEdges implements Function{
         }
         
         int currentIntersections = 0;
-        List<Edge> nodeEdges = g.getEdges(node);
-        
+//        List<Edge> nodeEdges = g.getEdges(node);
+        List<Edge> nodeEdges = adj.get(node.id);
+
         for (Edge e : nodeEdges) {
-            Set<Edge> intersectedEdges = intersectMap.get(e);
+//            Set<Edge> intersectedEdges = intersectMap.get(e);
+            Set<Integer> intersectedEdges = intersectMap.get(encode(e));
             currentIntersections += intersectedEdges.size();
         }
         
-        int internalIntersections = 0;
-        for (int i = 0; i < nodeEdges.size(); i++) {
-            Edge ei = nodeEdges.get(i);
-            for (int j = i + 1; j < nodeEdges.size(); j++) {
-                Edge ej = nodeEdges.get(j);
-                if (intersectMap.get(ei).contains(ej)) {
-                    internalIntersections++;
-                }
-            }
-        }
-        
+//        int internalIntersections = 0;
+//        for (int i = 0; i < nodeEdges.size(); i++) {
+//            Edge ei = nodeEdges.get(i);
+//            for (int j = i + 1; j < nodeEdges.size(); j++) {
+//                Edge ej = nodeEdges.get(j);
+////                if (intersectMap.get(ei).contains(ej)) {
+//                if (intersectMap.get(encode(ei)).contains(encode(ej))) {
+//                    internalIntersections++;
+//                }
+//            }
+//        }
+
         v.assign(newX, newY);
         
         int newIntersections = 0;
@@ -838,8 +926,12 @@ class NumberIntersectionEdges implements Function{
         for (Edge e : nodeEdges) {
             Segment2D se = createSegment(e);
             if (se == null) continue;
+            int eId = encode(e);
             for (Edge f : edges) {
                 if (f == e || nodeEdges.contains(f)) continue;
+                if (encode(f) == eId) continue;
+                if (e.fromNode.id == f.fromNode.id || e.toNode.id == f.toNode.id ||
+                        e.fromNode.id == f.toNode.id || e.toNode.id == f.fromNode.id) continue;
                 Segment2D sf = createSegment(f);
                 if (sf == null) continue;
                 if (se.intersect(sf) != null) {
@@ -848,27 +940,26 @@ class NumberIntersectionEdges implements Function{
             }
         }
         
-        for (int i = 0; i < nodeEdges.size(); i++) {
-            Edge ei = nodeEdges.get(i);
-            Segment2D si = createSegment(ei);
-            if (si == null) continue;
-            for (int j = i + 1; j < nodeEdges.size(); j++) {
-                Edge ej = nodeEdges.get(j);
-                Segment2D sj = createSegment(ej);
-                if (sj == null) continue;
-                
-                if (si.intersect(sj) != null) {
-                    newIntersections++;
-                }
-            }
-        }
+//        for (int i = 0; i < nodeEdges.size(); i++) {
+//            Edge ei = nodeEdges.get(i);
+//            Segment2D si = createSegment(ei);
+//            if (si == null) continue;
+//            for (int j = i + 1; j < nodeEdges.size(); j++) {
+//                Edge ej = nodeEdges.get(j);
+//                Segment2D sj = createSegment(ej);
+//                if (sj == null) continue;
+//
+//                if (si.intersect(sj) != null) {
+//                    newIntersections++;
+//                }
+//            }
+//        }
         
         v.assign(oldX, oldY);
-        
-        int currentNodeIntersections = (currentIntersections - internalIntersections) / 2 + internalIntersections;
-        int newTotalIntersections = totalIntersections - currentNodeIntersections + newIntersections;
-        
-        return -newTotalIntersections;
+
+//        int val = (totalIntersections - currentIntersections + newIntersections);
+
+        return -(totalIntersections - currentIntersections + newIntersections);
     }
 
     @Override
@@ -881,10 +972,12 @@ class NumberIntersectionEdges implements Function{
         }
         
         int removedCount = removeNodeIntersections(node);
-        totalIntersections -= removedCount >> 1;
+//        totalIntersections -= removedCount >> 1;
+        totalIntersections -= removedCount;
         v.assign(newX, newY);
         int addedCount = addNodeIntersections(node);
-        totalIntersections += addedCount >> 1;
+//        totalIntersections += addedCount >> 1;
+        totalIntersections += addedCount;
         v.assign(oldX, oldY);
     }
     @Override
@@ -964,7 +1057,7 @@ class LexMultiValues{
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (double v : values) {
-            sb.append(String.format("%.2f ", v));
+            sb.append(String.format("%.10f ", v));
         }
         return sb.toString().trim();
     }
@@ -1002,24 +1095,115 @@ public class Main {
     public static void test1(){
         int ROW = 20;
         int COL = 20; // the graph is presented on a grid ROW x COL
-        int n  = 5;// number of nodes 0,1, 2, ..., n-1
+        int n  = 20;// number of nodes 0,1, 2, ..., n-1
         List<Node> nodes = new ArrayList<>();
         for(int i = 0; i < n; i++){
             nodes.add(new Node(i));
         }
         Graph G = new Graph(nodes);
-        G.addEdge(nodes.get(0),nodes.get(1));
-        G.addEdge(nodes.get(0),nodes.get(2));
-        G.addEdge(nodes.get(0),nodes.get(4));
-        G.addEdge(nodes.get(1),nodes.get(3));
-        G.addEdge(nodes.get(1),nodes.get(4));
-        G.addEdge(nodes.get(2),nodes.get(4));
-        G.addEdge(nodes.get(1),nodes.get(0));
-        G.addEdge(nodes.get(2),nodes.get(0));
-        G.addEdge(nodes.get(4),nodes.get(0));
-        G.addEdge(nodes.get(3),nodes.get(1));
-        G.addEdge(nodes.get(4),nodes.get(1));
-        G.addEdge(nodes.get(4),nodes.get(2));
+//        G.addEdge(nodes.get(0),nodes.get(1));
+//        G.addEdge(nodes.get(0),nodes.get(2));
+//        G.addEdge(nodes.get(0),nodes.get(4));
+//        G.addEdge(nodes.get(1),nodes.get(3));
+//        G.addEdge(nodes.get(1),nodes.get(4));
+//        G.addEdge(nodes.get(2),nodes.get(4));
+//        G.addEdge(nodes.get(1),nodes.get(0));
+//        G.addEdge(nodes.get(2),nodes.get(0));
+//        G.addEdge(nodes.get(4),nodes.get(0));
+//        G.addEdge(nodes.get(3),nodes.get(1));
+//        G.addEdge(nodes.get(4),nodes.get(1));
+//        G.addEdge(nodes.get(4),nodes.get(2));
+
+        G.addEdge(nodes.get(0), nodes.get(1));
+        G.addEdge(nodes.get(1), nodes.get(0));
+
+        G.addEdge(nodes.get(1), nodes.get(2));
+        G.addEdge(nodes.get(2), nodes.get(1));
+
+        G.addEdge(nodes.get(2), nodes.get(3));
+        G.addEdge(nodes.get(3), nodes.get(2));
+
+        G.addEdge(nodes.get(3), nodes.get(4));
+        G.addEdge(nodes.get(4), nodes.get(3));
+
+        G.addEdge(nodes.get(4), nodes.get(5));
+        G.addEdge(nodes.get(5), nodes.get(4));
+
+        G.addEdge(nodes.get(5), nodes.get(6));
+        G.addEdge(nodes.get(6), nodes.get(5));
+
+        G.addEdge(nodes.get(6), nodes.get(7));
+        G.addEdge(nodes.get(7), nodes.get(6));
+
+        G.addEdge(nodes.get(7), nodes.get(8));
+        G.addEdge(nodes.get(8), nodes.get(7));
+
+        G.addEdge(nodes.get(8), nodes.get(9));
+        G.addEdge(nodes.get(9), nodes.get(8));
+
+        G.addEdge(nodes.get(9), nodes.get(10));
+        G.addEdge(nodes.get(10), nodes.get(9));
+
+        G.addEdge(nodes.get(10), nodes.get(11));
+        G.addEdge(nodes.get(11), nodes.get(10));
+
+        G.addEdge(nodes.get(11), nodes.get(12));
+        G.addEdge(nodes.get(12), nodes.get(11));
+
+        G.addEdge(nodes.get(12), nodes.get(13));
+        G.addEdge(nodes.get(13), nodes.get(12));
+
+        G.addEdge(nodes.get(13), nodes.get(14));
+        G.addEdge(nodes.get(14), nodes.get(13));
+
+        G.addEdge(nodes.get(14), nodes.get(15));
+        G.addEdge(nodes.get(15), nodes.get(14));
+
+        G.addEdge(nodes.get(15), nodes.get(16));
+        G.addEdge(nodes.get(16), nodes.get(15));
+
+        G.addEdge(nodes.get(16), nodes.get(17));
+        G.addEdge(nodes.get(17), nodes.get(16));
+
+        G.addEdge(nodes.get(17), nodes.get(18));
+        G.addEdge(nodes.get(18), nodes.get(17));
+
+        G.addEdge(nodes.get(18), nodes.get(19));
+        G.addEdge(nodes.get(19), nodes.get(18));
+
+        G.addEdge(nodes.get(0), nodes.get(4));
+        G.addEdge(nodes.get(4), nodes.get(0));
+
+        G.addEdge(nodes.get(1), nodes.get(5));
+        G.addEdge(nodes.get(5), nodes.get(1));
+
+        G.addEdge(nodes.get(2), nodes.get(6));
+        G.addEdge(nodes.get(6), nodes.get(2));
+
+        G.addEdge(nodes.get(3), nodes.get(7));
+        G.addEdge(nodes.get(7), nodes.get(3));
+
+        G.addEdge(nodes.get(4), nodes.get(8));
+        G.addEdge(nodes.get(8), nodes.get(4));
+
+        G.addEdge(nodes.get(5), nodes.get(9));
+        G.addEdge(nodes.get(9), nodes.get(5));
+
+        G.addEdge(nodes.get(6), nodes.get(10));
+        G.addEdge(nodes.get(10), nodes.get(6));
+
+        G.addEdge(nodes.get(7), nodes.get(11));
+        G.addEdge(nodes.get(11), nodes.get(7));
+
+        G.addEdge(nodes.get(8), nodes.get(12));
+        G.addEdge(nodes.get(12), nodes.get(8));
+
+        G.addEdge(nodes.get(9), nodes.get(13));
+        G.addEdge(nodes.get(13), nodes.get(9));
+
+        G.addEdge(nodes.get(10), nodes.get(14));
+        G.addEdge(nodes.get(14), nodes.get(10));
+
 
         Map<Node, VarNodePosition> varPos = new HashMap<>();
         Set<Integer> DX = new HashSet<>();
@@ -1033,7 +1217,7 @@ public class Main {
         }
 
         CBLSGPModel model = new CBLSGPModel();
-        Random rnd = new Random(123);
+        Random rnd = new Random(23480329);
         for (Node node : G.getNodes()) {
             VarNodePosition v = varPos.get(node);
             model.move(v, rnd.nextInt(COL + 1), rnd.nextInt(ROW + 1));
