@@ -1,6 +1,7 @@
 package CBLS;
 
 
+import javax.swing.text.Segment;
 import java.util.*;
 
 class Pair<K, V> {
@@ -33,6 +34,7 @@ class Geometry {
 
 class Point2D {
     public static Point2D infPoint = new Point2D(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+    public static double eps = 1e-9;
     private double x, y;
     public Point2D(double x, double y) {
         this.x = x;
@@ -40,9 +42,15 @@ class Point2D {
     }
 
     @Override
+    public String toString() {
+        return String.format("(%f, %f)", x, y);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof Point2D other)) return false;
-        return Math.abs(x - other.x) < 1e-15 && Math.abs(y - other.y) < 1e-15;
+        return Math.abs(x - other.x) < eps && Math.abs(y - other.y) < eps;
+//        return Double.compare(x, other.x) == 0 && Double.compare(y, other.y) == 0;
     }
 
     public double distance(Point2D o) {
@@ -116,7 +124,8 @@ class Point2D {
         int cnt = 0;
         int res = 0;
         for (int i = 0; i + 1 < points.size(); i++) {
-            if (Math.abs(angle.get(id.get(i + 1)) - angle.get(id.get(i))) < 1e-15) {
+//            if (Math.abs(angle.get(id.get(i + 1)) - angle.get(id.get(i))) < 1e-15) {
+            if (Math.abs(angle.get(id.get(i + 1)) - angle.get(id.get(i))) < eps) {
                 cnt++;
             }
             else {
@@ -132,7 +141,7 @@ class Point2D {
         double v = Math.atan2(point.getY() - y, point.getX() - x);
         int cnt = 0;
         for (Point2D p : points) {
-            if (Math.abs(Math.atan2(p.getY() - y, p.getX() - x) - v) < 1e-15) {
+            if (Math.abs(Math.atan2(p.getY() - y, p.getX() - x) - v) < eps) {
                 cnt++;
             }
         }
@@ -154,6 +163,11 @@ class Line2D {
         this.a = a;
         this.b = b;
         this.c = c;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Line2D(%f, %f, %f)", a, b, c);
     }
 
     public Point2D intersect(Line2D line) {
@@ -189,6 +203,11 @@ class Segment2D {
         this.y = y;
     }
 
+    @Override
+    public String toString() {
+        return String.format("Segment2D(%s, %s)", x, y);
+    }
+
     public Point2D intersect(Segment2D seg) {
 //        if (x.getX() == seg.getX().getX() && x.getY() == seg.getX().getY() && y.getX() == seg.getY().getX() && y.getY() == seg.getY().getY() ||
 //            x.getX() == seg.getY().getX() && x.getY() == seg.getY().getY() && y.getX() == seg.getX().getX() && y.getY() == seg.getX().getY()) {
@@ -207,13 +226,17 @@ class Segment2D {
         if (p == Point2D.infPoint) {
             double xx = x.distance(seg.x), yy = y.distance(seg.y), xy = x.distance(seg.y), yx = y.distance(seg.x);
 //            if (x.distance(seg.x) + x.distance(seg.y) < seg.x.distance(seg.y) + 1e-15) return x;
-            if (Math.abs(xx + xy - d2) < 1e-12) return x;
+            if (Math.abs(xx + xy - d2) < Point2D.eps) return x;
+//            if (Double.compare(xx + xy, d2) == 0) return x;
 //            if (y.distance(seg.x) + y.distance(seg.y) < seg.x.distance(seg.y) + 1e-15) return y;
-            if (Math.abs(yx + yy - d2) < 1e-12) return y;
+            if (Math.abs(yx + yy - d2) < Point2D.eps) return y;
+//            if (Double.compare(yx + yy, d2) == 0) return y;
 //            if (seg.x.distance(x) + seg.x.distance(y) < x.distance(y) + 1e-15) return seg.x;
-            if (Math.abs(xx + yx - d1) < 1e-12) return seg.x;
+            if (Math.abs(xx + yx - d1) < Point2D.eps) return seg.x;
+//            if (Double.compare(xx + yx, d1) == 0) return seg.x;
 //            if (seg.y.distance(x) + seg.y.distance(y) < x.distance(y) + 1e-15) return seg.y;
-            if (Math.abs(yy + xy - d1) < 1e-12) return seg.y;
+            if (Math.abs(yy + xy - d1) < Point2D.eps) return seg.y;
+//            if (Double.compare(yy + xy, d1) == 0) return seg.y;
             return null;
         }
 
@@ -221,8 +244,11 @@ class Segment2D {
 //            return null;
 //        }
 
-        if (p.distance(x) + p.distance(y) > d1 + 1e-12) return null;
-        if (p.distance(seg.x) + p.distance(seg.y) > d2 + 1e-12) return null;
+//        System.err.println(l1 + " " + l2 + " " + p + " " + d1 + " " + d2 + "\n" + (p.distance(x) + p.distance(y)) + " " + (p.distance(seg.x) + p.distance(seg.y)));
+        if (p.distance(x) + p.distance(y) > d1 + Point2D.eps) return null;
+//        if (Double.compare(p.distance(x) + p.distance(y), d1) > 0) return null;
+        if (p.distance(seg.x) + p.distance(seg.y) > d2 + Point2D.eps) return null;
+//        if (Double.compare(p.distance(seg.x) + p.distance(seg.y), d2) > 0) return null;
         return p;
     }
 
@@ -268,6 +294,10 @@ class NodePosition{
     public int id(){ return id; }
     public int x(){ return x_pos; }
     public int y(){ return y_pos; }
+    public void assign(int id, int newX, int newY){
+        this.id = id;
+        x_pos = newX; y_pos = newY;
+    }
     public void assign(int newX, int newY){
         x_pos = newX; y_pos = newY;
     }
@@ -321,9 +351,9 @@ class Edge{
 }
 
 class Graph {
-    private List<Node> nodes;
-    private Map<Integer, Node> nodeMap;
-    private Map<Node, List<Edge>> A; // A[v] is the list of adjacent edges of v
+    private final List<Node> nodes;
+    private final Map<Integer, Node> nodeMap;
+    private final Map<Node, List<Edge>> A; // A[v] is the list of adjacent edges of v
 
     public Graph(List<Node> nodes){
         this.nodes = nodes;
@@ -398,7 +428,8 @@ class CBLSGPModel{
     public void setNodePositionsValue(List<NodePosition> nodePositions){
         for(int i = 0; i < varNodePositions.size(); i++){
             // varNodePositions.get(i).assign(nodePositions.get(i).x(), nodePositions.get(i).y());
-            nodePositions.get(i).assign(varNodePositions.get(i).x(), varNodePositions.get(i).y());
+            VarNodePosition pos = varNodePositions.get(i);
+            nodePositions.get(i).assign(pos.id, pos.x(), pos.y());
         }
     }
 
@@ -442,7 +473,8 @@ class MinDistanceEdge implements Function{
     public double evaluation() {
         while (!pq.isEmpty()) {
             Pair<Double, Integer> p = pq.peek();
-            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+//            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+            if (Math.abs(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY) - p.a) > Point2D.eps) {
                 pq.poll();
                 continue;
             }
@@ -477,7 +509,8 @@ class MinDistanceEdge implements Function{
         while (!pq.isEmpty()) {
             Pair<Double, Integer> p = pq.poll();
 
-            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+//            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+            if (Math.abs(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY) - p.a) > Point2D.eps) {
                 continue;
             }
             tmp.add(p);
@@ -568,14 +601,19 @@ class MinAngle implements Function {
         
         @Override
         public int compareTo(NodeAngle o) {
-            int angleComp = Double.compare(angle, o.angle);
-            return angleComp != 0 ? angleComp : Integer.compare(node.id, o.node.id);
+//            int angleComp = Double.compare(angle, o.angle);
+//            return angleComp != 0 ? angleComp : Integer.compare(node.id, o.node.id);
+            if (Math.abs(angle - o.angle) > Point2D.eps) {
+                return Double.compare(angle, o.angle);
+            }
+            return Integer.compare(node.id, o.node.id);
         }
         
         @Override
         public boolean equals(Object o) {
             if (!(o instanceof NodeAngle na)) return false;
-            return node.id == na.node.id && Double.compare(angle, na.angle) == 0;
+//            return node.id == na.node.id && Double.compare(angle, na.angle) == 0;
+            return node.id == na.node.id && Math.abs(angle - na.angle) < Point2D.eps;
         }
         
         @Override
@@ -878,17 +916,17 @@ class NumberIntersectionEdges implements Function{
         for (Edge e : nodeEdges) {
             Segment2D se = createSegment(e);
             if (se == null) continue;
-            int eId = encode(e);
+            int ei = encode(e);
             for (Edge f : edges) {
-                if (f == e || nodeEdges.contains(f)) continue;
+//                if (f == e || nodeEdges.contains(f)) continue;
                 if (e.fromNode.id == f.fromNode.id || e.toNode.id == f.toNode.id ||
                         e.fromNode.id == f.toNode.id || e.toNode.id == f.fromNode.id) continue;
-                if (encode(f) == eId) continue;
+                if (encode(f) == ei) continue;
                 Segment2D sf = createSegment(f);
                 if (sf == null) continue;
                 
                 if (se.intersect(sf) != null) {
-                    int ei = encode(e), fi = encode(f);
+                    int fi = encode(f);
 //                    intersectMap.get(e).add(f);
 //                    intersectMap.get(f).add(e);
                     intersectMap.get(ei).add(fi);
@@ -929,11 +967,15 @@ class NumberIntersectionEdges implements Function{
 
     @Override
     public double evaluateOneNodeMove(VarNodePosition v, int newX, int newY) {
+        if (newX == -1 && newY == -1) {
+            return evaluation();
+        }
+
         Node node = g.getNode(v.id);
         int oldX = v.x(), oldY = v.y();
-        
+
         if (oldX == newX && oldY == newY) {
-            return -totalIntersections;
+            return evaluation();
         }
         
         int currentIntersections = 0;
@@ -967,7 +1009,7 @@ class NumberIntersectionEdges implements Function{
             if (se == null) continue;
             int eId = encode(e);
             for (Edge f : edges) {
-                if (f == e || nodeEdges.contains(f)) continue;
+//                if (f == e || nodeEdges.contains(f)) continue;
                 if (encode(f) == eId) continue;
                 if (e.fromNode.id == f.fromNode.id || e.toNode.id == f.toNode.id ||
                         e.fromNode.id == f.toNode.id || e.toNode.id == f.fromNode.id) continue;
@@ -1189,7 +1231,8 @@ class MinDistanceNodeEdge implements Function {
     public double evaluation() {
         while (!pq.isEmpty()) {
             Pair<Double, Long> p = pq.peek();
-            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+//            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+            if (Math.abs(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY) - p.a) > Point2D.eps) {
                 pq.poll();
                 continue;
             }
@@ -1247,7 +1290,8 @@ class MinDistanceNodeEdge implements Function {
         while (!pq.isEmpty()) {
             Pair<Double, Long> p = pq.poll();
 
-            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+//            if (Double.compare(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY), p.a) != 0) {
+            if (Math.abs(distances.getOrDefault(p.b, Double.POSITIVE_INFINITY) - p.a) > Point2D.eps) {
                 continue;
             }
 
@@ -1625,6 +1669,14 @@ public class Main {
 //        G.addEdge(nodes.get(10), nodes.get(14));
 //        G.addEdge(nodes.get(14), nodes.get(10));
 
+        Segment2D segment1 = new Segment2D(new Point2D(2, 16), new Point2D(7, 8));
+        Segment2D segment2 = new Segment2D(new Point2D(0, 12), new Point2D(7, 13));
+        Segment2D segment3 = new Segment2D(new Point2D(0, 7), new Point2D(7, 13));
+        Point2D p1 = segment1.intersect(segment2);
+        Point2D p2 = segment1.intersect(segment3);
+        Point2D p3 = segment2.intersect(segment3);
+        System.err.println(p1 + " " + p2 + " " + p3);
+        if (p1 == null) return ;
 
         Map<Node, VarNodePosition> varPos = new HashMap<>();
         Set<Integer> DX = new HashSet<>();
@@ -1652,33 +1704,42 @@ public class Main {
         MinDistanceNodeEdge F4 = new MinDistanceNodeEdge(G,varPos);// to be maximized
 
         LexMultiFunctions F = new LexMultiFunctions();
-        Function FObj = new ObjectiveFunction(F3, F2, F1, F4, 10.0, 10.0, 1.0, 1);
+        Function FObj = new ObjectiveFunction(F3, F2, F1, F4, 100.0, 200.0, 1.0, 4);
         model.addFunction(FObj);
         F.add(FObj);
 //        F.add(F3); F.add(F2); F.add(F1);
+
+        model.close();
+
 
         for (Node node : G.getNodes()) {
             VarNodePosition v = varPos.get(node);
             System.err.printf("%d: (%d, %d)\n", node.id, v.x(), v.y());
         }
-        model.close();
-
         LexMultiValues solutionEval = null;
-        List<NodePosition> solutionPositions = model.getNodePositions();
+        List<NodePosition> solutionPositions = new ArrayList<>();
+        for (Node node : G.getNodes()) {
+            VarNodePosition v = varPos.get(node);
+            solutionPositions.add(new NodePosition(v.id, v.x(), v.y()));
+        }
+
         boolean check = true;
-        while (check) {
+        final int maxCounter = 3;
+        int counter = 0;
+        StringBuilder str = new StringBuilder();
+        while (check || counter++ < maxCounter) {
             check = false;
             { // simple hill climbing
                 System.err.println("simple hill climbing");
                 boolean improved = true;
                 // for(int it = 1; it <= 100000 && improved; it++){
-                LexMultiValues bestEval = solutionEval;
+                LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 while (improved) {
                     improved = false;
                     VarNodePosition selNode = null;
                     int selX = -1;
                     int selY = -1;
-//                StringBuilder str = new StringBuilder();
+//                    StringBuilder str = new StringBuilder();
                     for (Node node : G.getNodes()) {
                         VarNodePosition v = varPos.get(node);
                         for (int x : DX) {
@@ -1691,6 +1752,7 @@ public class Main {
 //                                }
 //                                System.err.println();
                                 if (eval.better(bestEval)) {
+
 //                                    str.setLength(0);
 //                                    for (Function f : F.F) {
 //                                        str.append(f);
@@ -1710,25 +1772,33 @@ public class Main {
 
                     // perform the move
                     F.propagateOneNodeMove(selNode, selX, selY);
-//                for (Function f : F.F) {
-//                    str.append(f);
-//                }
-//                System.err.println(bestEval + " " + str + " " + selNode.id + " " + selX + " " + selY);
+//                    for (Function f : F.F) {
+//                        str.append(f);
+//                    }
+//                    System.err.println(bestEval + " " + str + " " + selNode.id + " " + selX + " " + selY);
                     model.move(selNode, selX, selY);
+
                     if (bestEval.better(solutionEval)) {
+                        str.setLength(0);
+                        for (Function f : F.F) {
+                            str.append(f);
+                        }
                         check = true;
+                        counter = 0;
                         solutionEval = bestEval;
                         model.setNodePositionsValue(solutionPositions);
                     }
                 }
             }
 
+//            if (false)
             { // tabu search
                 System.err.println("tabu search");
                 int tabuSize = 5;
                 Queue<NodePosition> tabuList = new LinkedList<>();
                 LexMultiValues currentEval = new LexMultiValues(List.of(FObj.evaluation()));
                 int iteration = 0, maxIteration = 100;
+                Map<Long, Boolean> isTabu = new HashMap<>();
                 while (iteration < maxIteration) {
                     iteration++;
 
@@ -1739,17 +1809,20 @@ public class Main {
                         VarNodePosition v = varPos.get(node);
                         for (int x : DX) {
                             for (int y : DY) {
-                                boolean isTabu = false;
-                                for (NodePosition pos : tabuList) {
-                                    if (pos.id() == node.id && pos.x() == x && pos.y() == y) {
-                                        isTabu = true;
-                                        break;
-                                    }
-                                }
-                                if (isTabu) continue;
+                                // boolean isTabu = false;
+                                // for (NodePosition pos : tabuList) {
+                                //     if (pos.id() == node.id && pos.x() == x && pos.y() == y) {
+                                //         isTabu = true;
+                                //         break;
+                                //     }
+                                // }
+                                // if (isTabu) continue;
+                                long code = (long) node.id * (COL + 1) * (ROW + 1) + (long) x * (ROW + 1) + y;
+                                if (isTabu.containsKey(code)) continue;
 
                                 LexMultiValues eval = F.evaluateOneNodeMove(v, x, y);
                                 if (eval.better(bestEval)) {
+
                                     selNode = v;
                                     selX = x;
                                     selY = y;
@@ -1763,16 +1836,26 @@ public class Main {
                         continue;
                     }
 
+                    long code = (long) selNode.id * (COL + 1) * (ROW + 1) + (long) selX * (ROW + 1) + selY;
+                    isTabu.put(code, true);
                     tabuList.add(new NodePosition(selNode.id, selNode.x(), selNode.y()));
                     if (tabuList.size() > tabuSize) {
-                        tabuList.poll();
+                        NodePosition pos = tabuList.poll();
+                        long code1 = (long) pos.id() * (COL + 1) * (ROW + 1) + (long) pos.x() * (ROW + 1) + pos.y();
+                        isTabu.remove(code1);
                     }
 
-                    model.move(selNode, selX, selY);
                     F.propagateOneNodeMove(selNode, selX, selY);
+                    model.move(selNode, selX, selY);
                     currentEval = bestEval;
                     if (currentEval.better(solutionEval)) {
+                        str.setLength(0);
+                        for (Function f : F.F) {
+                            str.append(f);
+                        }
+
                         check = true;
+                        counter = 0;
                         solutionEval = currentEval;
                         model.setNodePositionsValue(solutionPositions);
                     }
@@ -1782,12 +1865,12 @@ public class Main {
             { // simulated annealing
                 System.err.println("simulated annealing");
                 double temperature = 100.0;
-                double coolingRate = 0.995;
+                double coolingRate = 0.9995;
 
-                Random random = new Random();
+                Random random = new Random(290834301);
                 LexMultiValues currentEval = new LexMultiValues(List.of(FObj.evaluation()));
 
-                while (temperature > 0.1) {
+                while (temperature > 0.01) {
                     Node randomeNode = G.getNodes().get(random.nextInt(G.getNodes().size()));
                     VarNodePosition v = varPos.get(randomeNode);
                     int newX = random.nextInt(COL + 1);
@@ -1807,15 +1890,155 @@ public class Main {
                     if (accept) {
                         F.propagateOneNodeMove(v, newX, newY);
                         model.move(v, newX, newY);
+
                         currentEval = newEval;
                         if (currentEval.better(solutionEval)) {
+                            str.setLength(0);
+                            for (Function f : F.F) {
+                                str.append(f);
+                            }
+
                             check = true;
+                            counter = 0;
                             solutionEval = currentEval;
                             model.setNodePositionsValue(solutionPositions);
                         }
                     }
 
                     temperature *= coolingRate;
+                }
+            }
+
+//            if (false)
+            { // two points move
+                System.err.println("two points move");
+                int iteration = 0, maxIteration = 30000;
+                final double acceptWorseRate = 0.0005;
+                LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
+                Random random = new Random(8234091);
+                while (iteration < maxIteration) {
+                    iteration++;
+                    Node node1 = G.getNodes().get(random.nextInt(G.getNodes().size()));
+                    Node node2 = G.getNodes().get(random.nextInt(G.getNodes().size()));
+                    VarNodePosition v1 = varPos.get(node1);
+                    VarNodePosition v2 = varPos.get(node2);
+                    int oldX1 = v1.x();
+                    int oldY1 = v1.y();
+                    // int oldX2 = v2.x();
+                    // int oldY2 = v2.y();
+
+                    int newX1 = random.nextInt(COL + 1);
+                    int newY1 = random.nextInt(ROW + 1);
+                    int newX2 = random.nextInt(COL + 1);
+                    int newY2 = random.nextInt(ROW + 1);
+//                    v1.assign(newX1, newY1);
+//                    v2.assign(newX2, newY2);
+                    F.propagateOneNodeMove(v1, newX1, newY1);
+                    // F.propagateOneNodeMove(v2, newX2, newY2);
+                    model.move(v1, newX1, newY1);
+                    // model.move(v2, newX2, newY2);
+                    LexMultiValues newEval = F.evaluateOneNodeMove(v2, newX2, newY2);
+                    if (newEval.better(bestEval) || random.nextDouble() < acceptWorseRate) {
+
+                        bestEval = newEval;
+//                        model.setNodePositionsValue(solutionPositions);
+                        F.propagateOneNodeMove(v2, newX2, newY2);
+                        model.move(v2, newX2, newY2);
+                        if (newEval.better(solutionEval)) {
+                            str.setLength(0);
+                            for (Function f : F.F) {
+                                str.append(f);
+                            }
+
+                            check = true;
+                            counter = 0;
+                            solutionEval = newEval;
+                            model.setNodePositionsValue(solutionPositions);
+                        }
+
+                    }
+                    else {
+//                        v1.assign(oldX1, oldY1);
+                        // v2.assign(oldX2, oldY2);
+                        F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        // F.propagateOneNodeMove(v2, oldX2, oldY2);
+                        model.move(v1, oldX1, oldY1);
+                        // model.move(v2, oldX2, oldY2);
+                    }
+                }
+            }
+
+//            if (false)
+            { // three points move
+                System.err.println("three points move");
+                int iteration = 0;
+                int maxIteration = 10000;
+                double acceptWorseRate = 0.0005;
+                LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
+                Random random = new Random(289070329);
+                while (iteration < maxIteration) {
+                    iteration++;
+                    Node node1 = G.getNodes().get(random.nextInt(G.getNodes().size()));
+                    Node node2 = G.getNodes().get(random.nextInt(G.getNodes().size()));
+                    Node node3 = G.getNodes().get(random.nextInt(G.getNodes().size()));
+                    VarNodePosition v1 = varPos.get(node1);
+                    VarNodePosition v2 = varPos.get(node2);
+                    VarNodePosition v3 = varPos.get(node3);
+                    int oldX1 = v1.x();
+                    int oldY1 = v1.y();
+                    int oldX2 = v2.x();
+                    int oldY2 = v2.y();
+                    // int oldX3 = v3.x();
+                    // int oldY3 = v3.y();
+
+                    int newX1 = random.nextInt(COL + 1);
+                    int newY1 = random.nextInt(ROW + 1);
+                    int newX2 = random.nextInt(COL + 1);
+                    int newY2 = random.nextInt(ROW + 1);
+                    int newX3 = random.nextInt(COL + 1);
+                    int newY3 = random.nextInt(ROW + 1);
+
+                    F.propagateOneNodeMove(v1, newX1, newY1);
+                    F.propagateOneNodeMove(v2, newX2, newY2);
+//                        F.propagateOneNodeMove(v3, newX3, newY3);
+
+//                        v1.assign(newX1, newY1);
+                    model.move(v1, newX1, newY1);
+                    // v2.assign(newX2, newY2);
+                    model.move(v2, newX2, newY2);
+                    // v3.assign(newX3, newY3);
+//                        model.move(v3, newX3, newY3);
+
+                    LexMultiValues newEval = F.evaluateOneNodeMove(v3, newX3, newY3);
+                    if (newEval.better(bestEval) || random.nextDouble() < acceptWorseRate) {
+                        bestEval = newEval;
+                        F.propagateOneNodeMove(v3, newX3, newY3);
+                        model.move(v3, newX3, newY3);
+                        if (newEval.better(solutionEval)) {
+                            str.setLength(0);
+                            for (Function f : F.F) {
+                                str.append(f);
+                            }
+
+                            check = true;
+                            counter = 0;
+                            solutionEval = newEval;
+                            model.setNodePositionsValue(solutionPositions);
+                        }
+                    } else {
+                        F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        F.propagateOneNodeMove(v2, oldX2, oldY2);
+//                        F.propagateOneNodeMove(v3, oldX3, oldY3);
+
+                        // v1.assign(oldX1, oldY1);
+                        model.move(v1, oldX1, oldY1);
+                        // v2.assign(oldX2, oldY2);
+                        model.move(v2, oldX2, oldY2);
+                        // v3.assign(oldX3, oldY3);
+//                        model.move(v3, oldX3, oldY3);
+
+
+                    }
                 }
             }
 
@@ -1848,11 +2071,31 @@ public class Main {
 //             VarNodePosition v = varPos.get(node);
 //             System.err.printf("%d: (%d, %d),\n", node.id, v.x(), v.y());
 //         }
+        System.err.printf("%s %s\n", str, solutionEval);
         for (NodePosition pos : solutionPositions) {
             System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
         }
+
+//        {
+////            for (Node node : G.getNodes()) {
+//            for (int i = 0; i < n; i++) {
+//                VarNodePosition pos = varPos.get(nodes.get(i));
+//                NodePosition pos1 = solutionPositions.get(i);
+//                pos.assign(pos1.x(), pos1.y());
+//            }
+//            NumberIntersectionEdges f3 = new NumberIntersectionEdges(G, varPos);// to be minimized
+//            MinAngle f2 = new MinAngle(G, varPos);// to be maximized
+//            MinDistanceEdge f1 = new MinDistanceEdge(G, varPos);// to be maximized
+//            MinDistanceNodeEdge f4 = new MinDistanceNodeEdge(G, varPos);// to be maximized
+//
+//            Function fObj = new ObjectiveFunction(f3, f2, f1, f4, 1000.0, 100.0, 1.0, 1);
+//            System.err.println(fObj);
+//        }
     }
     public static void main(String[] args){
+        long startTime = System.currentTimeMillis();
         test1();
+        long endTime = System.currentTimeMillis();
+        System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
     }
 }
