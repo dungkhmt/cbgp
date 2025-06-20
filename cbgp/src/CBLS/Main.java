@@ -2237,18 +2237,22 @@ class GraphFace {
         Edge newEdgeV = g.addEdge(v.value.fromNode, u.value.fromNode);
         DoubleLinkedList<Edge> newFace = new DoubleLinkedList<>();
         LinkedNode<Edge> current = u;
+        boolean check = false;
         do {
             LinkedNode<Edge> nextNode = current.next();
             face.remove(current);
             newFace.add(current);
             current = nextNode;
             if (current == null) {
+                check = true;
                 if ((current = face.getFirst()) == null) {
                     break;
                 }
             }
         } while (current != v);
-        face.addFirst(newEdgeU);
+
+        if (check) face.addFirst(newEdgeU);
+        else face.insert(current.prev(), newEdgeU);
         newFace.add(newEdgeV);
         return new GraphFace(g, newFace);
     }
@@ -2275,8 +2279,10 @@ class PlanarGraphGenerator {
 
         // build tree
         Graph graph = new Graph(nodes);
+        Set<Integer> usedEdges = new HashSet<>();
         for (int i = 1; i < n; i++) {
             int j = random.nextInt(i);
+            usedEdges.add(j * n + i);
             DoubleLinkedList<Edge> edge = adj.get(j);
             Edge eu = graph.addEdge(nodes.get(i), nodes.get(j));
             Edge ev = graph.addEdge(nodes.get(j), nodes.get(i));
@@ -2309,6 +2315,11 @@ class PlanarGraphGenerator {
             GraphFace newFace = null;
 
             List<LinkedNode<Edge>> faceEdges = face.face.toNodeList();
+            // for (LinkedNode<Edge> edge : faceEdges) {
+            //     System.err.printf("(%d %d) ", edge.value.fromNode.id, edge.value.toNode.id);
+            // }
+            // System.err.println();
+
             Collections.shuffle(faceEdges, random);
 
             int p = faceEdges.size();
@@ -2319,16 +2330,22 @@ class PlanarGraphGenerator {
                 if (nextU == null) {
                     nextU = face.face.getFirst();
                 }
-                for (int k = 0; k < i; k++) {
+                for (int k = 0; k < j; k++) {
                     LinkedNode<Edge> v = faceEdges.get(k);
                     LinkedNode<Edge> nextV = v.next();
                     if (nextV == null) {
                         nextV = face.face.getFirst();
                     }
-                    if (u == v || nextU == v || nextV == u) {
+                    if (u == v || nextU == v || nextV == u || u.value.fromNode.id == v.value.fromNode.id) {
+                        continue; 
+                    }
+                    int eId = Math.min(u.value.fromNode.id, v.value.fromNode.id) * n + 
+                            Math.max(u.value.fromNode.id, v.value.fromNode.id);
+                    if (usedEdges.contains(eId)) {
                         continue; 
                     }
 
+                    usedEdges.add(eId);
                     newFace = face.split(u, v);
                     // System.err.println(u.value.fromNode.id + " " + u.value.toNode.id + " " +
                     //         v.value.fromNode.id + " " + v.value.toNode.id);
@@ -2362,7 +2379,7 @@ public class Main {
             Kattio io = new Kattio(null, "tests/" + i + ".in");
 
             int n = N.get(i);
-            int m = random.nextInt(n * 2 - 4) + n - 1; 
+            int m = random.nextInt(Math.min(n * 3 - 6, n * 2), n * 3 - 5); 
             Graph g = PlanarGraphGenerator.generatePlanarGraph(n, m);
             io.printf("%d %d\n%d %d\n", n, n, n, m);
             Set<Integer> used = new HashSet<>();
