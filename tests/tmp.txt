@@ -1,0 +1,195 @@
+//        G.addEdge(nodes.get(0),nodes.get(1));
+//        G.addEdge(nodes.get(0),nodes.get(2));
+//        G.addEdge(nodes.get(0),nodes.get(4));
+//        G.addEdge(nodes.get(1),nodes.get(3));
+//        G.addEdge(nodes.get(1),nodes.get(4));
+//        G.addEdge(nodes.get(2),nodes.get(4));
+//        G.addEdge(nodes.get(1),nodes.get(0));
+//        G.addEdge(nodes.get(2),nodes.get(0));
+//        G.addEdge(nodes.get(4),nodes.get(0));
+//        G.addEdge(nodes.get(3),nodes.get(1));
+//        G.addEdge(nodes.get(4),nodes.get(1));
+//        G.addEdge(nodes.get(4),nodes.get(2));
+
+//        G.addEdge(nodes.get(1), nodes.get(2));
+//        G.addEdge(nodes.get(2), nodes.get(1));
+//        G.addEdge(nodes.get(1), nodes.get(6));
+//        G.addEdge(nodes.get(6), nodes.get(1));
+//        G.addEdge(nodes.get(2), nodes.get(3));
+//        G.addEdge(nodes.get(3), nodes.get(2));
+//        G.addEdge(nodes.get(2), nodes.get(7));
+//        G.addEdge(nodes.get(7), nodes.get(2));
+//        G.addEdge(nodes.get(3), nodes.get(4));
+//        G.addEdge(nodes.get(4), nodes.get(3));
+//        G.addEdge(nodes.get(3), nodes.get(8));
+//        G.addEdge(nodes.get(8), nodes.get(3));
+//        G.addEdge(nodes.get(4), nodes.get(5));
+//        G.addEdge(nodes.get(5), nodes.get(4));
+//        G.addEdge(nodes.get(4), nodes.get(9));
+//        G.addEdge(nodes.get(9), nodes.get(4));
+//        G.addEdge(nodes.get(5), nodes.get(10));
+//        G.addEdge(nodes.get(10), nodes.get(5));
+//        G.addEdge(nodes.get(6), nodes.get(7));
+//        G.addEdge(nodes.get(7), nodes.get(6));
+//        G.addEdge(nodes.get(6), nodes.get(11));
+//        G.addEdge(nodes.get(11), nodes.get(6));
+//        G.addEdge(nodes.get(7), nodes.get(8));
+//        G.addEdge(nodes.get(8), nodes.get(7));
+//        G.addEdge(nodes.get(7), nodes.get(12));
+//        G.addEdge(nodes.get(12), nodes.get(7));
+//        G.addEdge(nodes.get(8), nodes.get(9));
+//        G.addEdge(nodes.get(9), nodes.get(8));
+//        G.addEdge(nodes.get(9), nodes.get(10));
+//        G.addEdge(nodes.get(10), nodes.get(9));
+//        G.addEdge(nodes.get(9), nodes.get(14));
+//        G.addEdge(nodes.get(14), nodes.get(9));
+//        G.addEdge(nodes.get(10), nodes.get(15));
+//        G.addEdge(nodes.get(15), nodes.get(10));
+//        G.addEdge(nodes.get(11), nodes.get(12));
+//        G.addEdge(nodes.get(12), nodes.get(11));
+//        G.addEdge(nodes.get(11), nodes.get(16));
+//        G.addEdge(nodes.get(16), nodes.get(11));
+//        G.addEdge(nodes.get(12), nodes.get(13));
+//        G.addEdge(nodes.get(13), nodes.get(12));
+//        G.addEdge(nodes.get(12), nodes.get(17));
+//        G.addEdge(nodes.get(17), nodes.get(12));
+//        G.addEdge(nodes.get(13), nodes.get(14));
+//        G.addEdge(nodes.get(14), nodes.get(13));
+//        G.addEdge(nodes.get(13), nodes.get(18));
+//        G.addEdge(nodes.get(18), nodes.get(13));
+//        G.addEdge(nodes.get(14), nodes.get(15));
+//        G.addEdge(nodes.get(15), nodes.get(14));
+//        G.addEdge(nodes.get(14), nodes.get(19));
+//        G.addEdge(nodes.get(19), nodes.get(14));
+//        G.addEdge(nodes.get(15), nodes.get(20));
+//        G.addEdge(nodes.get(20), nodes.get(15));
+//        G.addEdge(nodes.get(16), nodes.get(17));
+//        G.addEdge(nodes.get(17), nodes.get(16));
+//        G.addEdge(nodes.get(17), nodes.get(18));
+//        G.addEdge(nodes.get(18), nodes.get(17));
+//        G.addEdge(nodes.get(18), nodes.get(19));
+//        G.addEdge(nodes.get(19), nodes.get(18));
+//        G.addEdge(nodes.get(19), nodes.get(20));
+//        G.addEdge(nodes.get(20), nodes.get(19));
+
+        G.addEdge(nodes.get(0), nodes.get(1)); G.addEdge(nodes.get(1), nodes.get(0));
+        G.addEdge(nodes.get(0), nodes.get(5)); G.addEdge(nodes.get(5), nodes.get(0));
+        G.addEdge(nodes.get(1), nodes.get(2)); G.addEdge(nodes.get(2), nodes.get(1));
+        G.addEdge(nodes.get(1), nodes.get(6)); G.addEdge(nodes.get(6), nodes.get(1));
+        G.addEdge(nodes.get(2), nodes.get(3)); G.addEdge(nodes.get(3), nodes.get(2));
+        G.addEdge(nodes.get(2), nodes.get(7)); G.addEdge(nodes.get(7), nodes.get(2));
+        G.addEdge(nodes.get(3), nodes.get(4)); G.addEdge(nodes.get(4), nodes.get(3));
+        G.addEdge(nodes.get(3), nodes.get(8)); G.addEdge(nodes.get(8), nodes.get(3));
+        G.addEdge(nodes.get(4), nodes.get(9)); G.addEdge(nodes.get(9), nodes.get(4));
+        G.addEdge(nodes.get(5), nodes.get(6)); G.addEdge(nodes.get(6), nodes.get(5));
+        G.addEdge(nodes.get(5), nodes.get(10)); G.addEdge(nodes.get(10), nodes.get(5));
+        G.addEdge(nodes.get(6), nodes.get(7)); G.addEdge(nodes.get(7), nodes.get(6));
+        G.addEdge(nodes.get(6), nodes.get(11)); G.addEdge(nodes.get(11), nodes.get(6));
+        G.addEdge(nodes.get(7), nodes.get(8)); G.addEdge(nodes.get(8), nodes.get(7));
+        G.addEdge(nodes.get(8), nodes.get(9)); G.addEdge(nodes.get(9), nodes.get(8));
+        G.addEdge(nodes.get(8), nodes.get(13)); G.addEdge(nodes.get(13), nodes.get(8));
+        G.addEdge(nodes.get(9), nodes.get(14)); G.addEdge(nodes.get(14), nodes.get(9));
+        G.addEdge(nodes.get(10), nodes.get(11)); G.addEdge(nodes.get(11), nodes.get(10));
+        G.addEdge(nodes.get(10), nodes.get(15)); G.addEdge(nodes.get(15), nodes.get(10));
+        G.addEdge(nodes.get(11), nodes.get(12)); G.addEdge(nodes.get(12), nodes.get(11));
+        G.addEdge(nodes.get(11), nodes.get(16)); G.addEdge(nodes.get(16), nodes.get(11));
+        G.addEdge(nodes.get(12), nodes.get(13)); G.addEdge(nodes.get(13), nodes.get(12));
+        G.addEdge(nodes.get(12), nodes.get(17)); G.addEdge(nodes.get(17), nodes.get(12));
+        G.addEdge(nodes.get(13), nodes.get(14)); G.addEdge(nodes.get(14), nodes.get(13));
+        G.addEdge(nodes.get(13), nodes.get(18)); G.addEdge(nodes.get(18), nodes.get(13));
+        G.addEdge(nodes.get(14), nodes.get(19)); G.addEdge(nodes.get(19), nodes.get(14));
+        G.addEdge(nodes.get(15), nodes.get(16)); G.addEdge(nodes.get(16), nodes.get(15));
+        G.addEdge(nodes.get(16), nodes.get(17)); G.addEdge(nodes.get(17), nodes.get(16));
+        G.addEdge(nodes.get(17), nodes.get(18)); G.addEdge(nodes.get(18), nodes.get(17));
+        G.addEdge(nodes.get(18), nodes.get(19)); G.addEdge(nodes.get(19), nodes.get(18));
+
+//        G.addEdge(nodes.get(0), nodes.get(1));
+//        G.addEdge(nodes.get(1), nodes.get(0));
+//
+//        G.addEdge(nodes.get(1), nodes.get(2));
+//        G.addEdge(nodes.get(2), nodes.get(1));
+//
+//        G.addEdge(nodes.get(2), nodes.get(3));
+//        G.addEdge(nodes.get(3), nodes.get(2));
+//
+//        G.addEdge(nodes.get(3), nodes.get(4));
+//        G.addEdge(nodes.get(4), nodes.get(3));
+//
+//        G.addEdge(nodes.get(4), nodes.get(5));
+//        G.addEdge(nodes.get(5), nodes.get(4));
+//
+//        G.addEdge(nodes.get(5), nodes.get(6));
+//        G.addEdge(nodes.get(6), nodes.get(5));
+//
+//        G.addEdge(nodes.get(6), nodes.get(7));
+//        G.addEdge(nodes.get(7), nodes.get(6));
+//
+//        G.addEdge(nodes.get(7), nodes.get(8));
+//        G.addEdge(nodes.get(8), nodes.get(7));
+//
+//        G.addEdge(nodes.get(8), nodes.get(9));
+//        G.addEdge(nodes.get(9), nodes.get(8));
+//
+//        G.addEdge(nodes.get(9), nodes.get(10));
+//        G.addEdge(nodes.get(10), nodes.get(9));
+//
+//        G.addEdge(nodes.get(10), nodes.get(11));
+//        G.addEdge(nodes.get(11), nodes.get(10));
+//
+//        G.addEdge(nodes.get(11), nodes.get(12));
+//        G.addEdge(nodes.get(12), nodes.get(11));
+//
+//        G.addEdge(nodes.get(12), nodes.get(13));
+//        G.addEdge(nodes.get(13), nodes.get(12));
+//
+//        G.addEdge(nodes.get(13), nodes.get(14));
+//        G.addEdge(nodes.get(14), nodes.get(13));
+//
+//        G.addEdge(nodes.get(14), nodes.get(15));
+//        G.addEdge(nodes.get(15), nodes.get(14));
+//
+//        G.addEdge(nodes.get(15), nodes.get(16));
+//        G.addEdge(nodes.get(16), nodes.get(15));
+//
+//        G.addEdge(nodes.get(16), nodes.get(17));
+//        G.addEdge(nodes.get(17), nodes.get(16));
+//
+//        G.addEdge(nodes.get(17), nodes.get(18));
+//        G.addEdge(nodes.get(18), nodes.get(17));
+//
+//        G.addEdge(nodes.get(18), nodes.get(19));
+//        G.addEdge(nodes.get(19), nodes.get(18));
+//
+//        G.addEdge(nodes.get(0), nodes.get(4));
+//        G.addEdge(nodes.get(4), nodes.get(0));
+//
+//        G.addEdge(nodes.get(1), nodes.get(5));
+//        G.addEdge(nodes.get(5), nodes.get(1));
+//
+//        G.addEdge(nodes.get(2), nodes.get(6));
+//        G.addEdge(nodes.get(6), nodes.get(2));
+//
+//        G.addEdge(nodes.get(3), nodes.get(7));
+//        G.addEdge(nodes.get(7), nodes.get(3));
+//
+//        G.addEdge(nodes.get(4), nodes.get(8));
+//        G.addEdge(nodes.get(8), nodes.get(4));
+//
+//        G.addEdge(nodes.get(5), nodes.get(9));
+//        G.addEdge(nodes.get(9), nodes.get(5));
+//
+//        G.addEdge(nodes.get(6), nodes.get(10));
+//        G.addEdge(nodes.get(10), nodes.get(6));
+//
+//        G.addEdge(nodes.get(7), nodes.get(11));
+//        G.addEdge(nodes.get(11), nodes.get(7));
+//
+//        G.addEdge(nodes.get(8), nodes.get(12));
+//        G.addEdge(nodes.get(12), nodes.get(8));
+//
+//        G.addEdge(nodes.get(9), nodes.get(13));
+//        G.addEdge(nodes.get(13), nodes.get(9));
+//
+//        G.addEdge(nodes.get(10), nodes.get(14));
+//        G.addEdge(nodes.get(14), nodes.get(10));
+

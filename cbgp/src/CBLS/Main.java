@@ -1,8 +1,10 @@
 package CBLS;
 
 
-import javax.swing.text.Segment;
+// import javax.security.auth.kerberos.KeyTab;
+// import javax.swing.text.Segment;
 import java.util.*;
+import java.io.*;
 
 class Pair<K, V> {
     public K a;
@@ -277,6 +279,55 @@ class Segment2D {
     }
 }
 
+class Kattio extends PrintWriter {
+    private final BufferedReader r;
+    private StringTokenizer st;
+
+    // standard input
+    public Kattio() { this(System.in, System.out); }
+    public Kattio(OutputStream o) {
+        super(o);
+        r = null;
+    }
+    public Kattio(InputStream i, OutputStream o) {
+        super(o);
+        r = new BufferedReader(new InputStreamReader(i));
+    }
+    public Kattio(String inputFile) throws IOException {
+        super(System.out);
+//        System.err.println("Reading from file: " + inputFile);
+        try {
+            r = new BufferedReader(new FileReader(inputFile));
+        }
+        catch (IOException e) {
+            System.err.println(e.getMessage());
+            throw e;
+        }
+    }
+    public Kattio(String inputFile, String outputFile) throws IOException {
+        super(outputFile != null ? (new BufferedOutputStream(new FileOutputStream(outputFile))) : System.out);
+        try {
+            r = inputFile != null ? new BufferedReader(new FileReader(inputFile)) : null;
+        }
+        catch (IOException e) {
+            System.err.println(e.getMessage());
+            throw e;
+        }
+    }
+    public String next() {
+        try {
+            while (st == null || !st.hasMoreTokens())
+                st = new StringTokenizer(r.readLine());
+            return st.nextToken();
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    public int nextInt() { return Integer.parseInt(next()); }
+    public double nextDouble() { return Double.parseDouble(next()); }
+    public long nextLong() { return Long.parseLong(next()); }
+}
+
 
 
 interface Function{
@@ -386,9 +437,10 @@ class Graph {
     }
 
     private int edgeId = 0;
-    public void addEdge(Node u, Node v){
+    public Edge addEdge(Node u, Node v){
         Edge e = new Edge(edgeId++, u, v);
         A.get(u).add(e);
+        return e;
     }
     public List<Node> getNodes(){ return nodes; }
     public List<Edge> getEdges(Node u){
@@ -408,6 +460,97 @@ class Graph {
     public Node getNode(int id) {
         return nodeMap.get(id);
     }
+
+
+    private Set<Edge> visited;
+    private List<Edge> result;
+    private void dfs(Node current, Node prev) {
+        for (Edge edge : A.get(current)) {
+            Node next = edge.getRemaining(current);
+            if (next == null || next == prev || visited.contains(edge)) continue;
+            visited.add(edge);
+            result.add(edge);
+            dfs(next, current);
+        }
+    }
+
+    public List<Edge> dfs(Node start) {
+        result = new ArrayList<>();
+        visited = new HashSet<>();
+        dfs(start, start);
+        // for (Edge edge : result) {
+        //     System.err.println("Edge: " + edge.fromNode.id + " -> " + edge.toNode.id);
+        // }
+
+        return result;
+    }
+
+    private void dfs(Node current, Node prev, List<DoubleLinkedList<Edge>> adj) {
+        LinkedNode<Edge> edge = adj.get(current.id).getFirst();
+        Edge prevEdge = null;
+        while (edge != null) {
+            Node next = edge.value.toNode;
+            // System.err.println("." + prev.id + " " + next.id);
+            if (next == prev) {
+                prevEdge = edge.value;
+                edge = edge.next;
+                continue;
+            }
+            if (next == null || visited.contains(edge.value)) {
+                edge = edge.next;
+                continue;
+            }
+
+            visited.add(edge.value);
+            result.add(edge.value);
+            dfs(next, current, adj);
+            edge = edge.next;
+        }
+        if (prevEdge != null) {
+            // visited.add(prevEdge);
+            result.add(prevEdge);
+        }
+    }
+
+
+    public List<Edge> dfs(Node start, List<DoubleLinkedList<Edge>> adj) {
+        // List<Edge> result = new ArrayList<>();
+        // Set<Node> visited = new HashSet<>();
+        // Stack<Node> stack = new Stack<>();
+        // stack.push(start);
+        // visited.add(start);
+        
+        // while (!stack.isEmpty()) {
+        //     Node current = stack.pop();
+        //     LinkedNode<Edge> edge = adj.get(current.id).getFirst();
+        //     while (edge != null) {
+        //         Node next = edge.value.getRemaining(current);
+        //         if (next != null && !visited.contains(next)) {
+        //             visited.add(next);
+        //             stack.push(next);
+        //             result.add(edge.value);
+        //         }
+        //         edge = edge.next;
+        //     }
+        // }
+        // for (DoubleLinkedList<Edge> edges : adj) {
+        //     for (LinkedNode<Edge> edge = edges.getFirst(); edge != null; edge = edge.next) {
+        //         System.err.println("Edge: " + edge.value.fromNode.id + " -> " + edge.value.toNode.id);
+        //     }
+        // }
+
+        result = new ArrayList<>();
+        visited = new HashSet<>();
+        dfs(start, start, adj);
+        // System.err.println(result.size());
+        // for (Edge edge : result) {
+        //     System.err.println("Edge: " + edge.fromNode.id + " -> " + edge.toNode.id);
+        // }
+
+        return result;
+    }
+
+
 }
 
 class CBLSGPModel{
@@ -1131,7 +1274,7 @@ class NumberIntersectionEdges implements Function{
                 }
             }
         }
-        System.err.println(totalIntersections);
+        // System.err.println(totalIntersections);
     }
 
     private Segment2D createSegment(Edge e) {
@@ -1775,211 +1918,492 @@ class LexMultiFunctions{
 
 }
 
+class LinkedNode<E> {
+    public final E value;
+    public LinkedNode<E> next;
+    public LinkedNode<E> previous;
+
+    public LinkedNode(E value, LinkedNode<E> next, LinkedNode<E> previous) {
+        this.value = value;
+        this.next = next;
+        this.previous = previous;
+    }
+
+    public LinkedNode<E> next() {
+        return next;
+    }
+    public LinkedNode<E> prev() {
+        return previous;
+    }
+}
+
+class DoubleLinkedList<E> {
+    private LinkedNode<E> head;
+    private LinkedNode<E> tail;
+    private int length = 0;
+
+    public DoubleLinkedList() {
+        head = null;
+        tail = null;
+        length = 0;
+    }
+    public DoubleLinkedList(E value) {
+        head = new LinkedNode<>(value, null, null);
+        tail = head;
+        length = 1;
+    }
+    public DoubleLinkedList(List<E> values) {
+        if (values == null || values.isEmpty()) {
+            head = null;
+            tail = null;
+            length = 0;
+            return;
+        }
+        head = new LinkedNode<>(values.get(0), null, null);
+        LinkedNode<E> current = head;
+        for (int i = 1; i < values.size(); i++) {
+            LinkedNode<E> newNode = new LinkedNode<>(values.get(i), null, current);
+            current.next = newNode;
+            current = newNode;
+        }
+        tail = current;
+        length = values.size();
+    }
+
+    public int size() {
+        return length;
+    }
+
+    public LinkedNode<E> add(E value) {
+        LinkedNode<E> newNode = new LinkedNode<>(value, null, tail);
+        if (tail == null) {
+            head = newNode;
+            tail = newNode;
+            length = 1;
+            return tail;
+        }
+        tail.next = newNode;
+        tail = newNode;
+        length++;
+        return tail;
+    }
+
+    public LinkedNode<E> add(LinkedNode<E> node) {
+        if (node == null) {
+            return null;
+        }
+        if (tail == null) {
+            head = node;
+            tail = node;
+            length = 1;
+            return tail;
+        }
+        tail.next = node;
+        node.previous = tail;
+        tail = node;
+        length++;
+        return tail;
+    }
+
+    public LinkedNode<E> addAll(List<E> values) {
+        LinkedNode<E> tail = this.tail;
+        for (E value : values) {
+            add(value);
+        }
+        return tail;
+    }
+
+    public LinkedNode<E> addFirst(E value) {
+        LinkedNode<E> newNode = new LinkedNode<>(value, head, null);
+        if (head == null) {
+            head = newNode;
+            tail = newNode;
+            length = 1;
+            return head;
+        }
+        head.previous = newNode;
+        head = newNode;
+        length++;
+        return head;
+    }
+
+    public LinkedNode<E> insert(int index, E value) {
+        if (index > length || index < 0) {
+            return null;
+        } else if (index == 0) {
+            return addFirst(value);
+        } else if (index == length) {
+            return add(value);
+        }
+
+        LinkedNode<E> currentNode = get(index);
+        LinkedNode<E> leadNode = currentNode.previous;
+        LinkedNode<E> newNode = new LinkedNode<>(value, currentNode, leadNode);
+        leadNode.next = newNode;
+        currentNode.previous = newNode;
+        length++;
+
+        return newNode;
+    }
+
+    public LinkedNode<E> insert(LinkedNode<E> node, E value) {
+        if (node == null) {
+            return null;
+        }
+        LinkedNode<E> newNode = new LinkedNode<>(value, node.next, node);
+        if (node.next != null) {
+            node.next.previous = newNode;
+        } else {
+            tail = newNode;
+        }
+        node.next = newNode;
+        length++;
+        return newNode;
+    }
+
+    public LinkedNode<E> removeFirst() {
+        if (head == null) {
+            return null;
+        }
+        LinkedNode<E> removedNode = head;
+        head = head.next;
+        if (head != null) {
+            head.previous = null;
+        } else {
+            tail = null;
+        }
+        length--;
+        return removedNode;
+    }
+
+    public LinkedNode<E> removeLast() {
+        if (tail == null) {
+            return null;
+        }
+        LinkedNode<E> removedNode = tail;
+        tail = tail.previous;
+        if (tail != null) {
+            tail.next = null;
+        } else {
+            head = null;
+        }
+        length--;
+        return removedNode;
+    }
+
+    public void remove(LinkedNode<E> removedNode) {
+        if (removedNode == null) {
+            return;
+        }
+        if (removedNode == head) {
+            removeFirst();
+            return;
+        } else if (removedNode == tail) {
+            removeLast();
+            return;
+        }
+
+        LinkedNode<E> previousNode = removedNode.previous;
+        LinkedNode<E> nextNode = removedNode.next;
+
+        if (previousNode != null) {
+            previousNode.next = nextNode;
+        }
+        if (nextNode != null) {
+            nextNode.previous = previousNode;
+        }
+        length--;
+    }
+
+    public void remove(int index) {
+        if (index < 0 || index >= length) {
+            return;
+        }
+        if (index == 0) {
+            removeFirst();
+            return;
+        } else if (index == length - 1) {
+            removeLast();
+            return;
+        }
+
+        LinkedNode<E> nodeToRemove = get(index);
+        LinkedNode<E> previousNode = nodeToRemove.previous;
+        LinkedNode<E> nextNode = nodeToRemove.next;
+
+        if (previousNode != null) {
+            previousNode.next = nextNode;
+        }
+        if (nextNode != null) {
+            nextNode.previous = previousNode;
+        }
+        length--;
+    }
+
+    public LinkedNode<E> get(int index) {
+        LinkedNode<E> temp = head;
+        while (index-- > 0) {
+            temp = temp.next;
+        }
+        return temp;
+    }
+
+    public boolean isEmpty() {
+        return length == 0;
+    }
+
+    public LinkedNode<E> getFirst() {
+        return head;
+    }
+    public LinkedNode<E> getLast() {
+        return tail;
+    }
+
+    public List<E> toList() {
+        List<E> list = new ArrayList<>();
+        LinkedNode<E> current = head;
+        while (current != null) {
+            list.add(current.value);
+            current = current.next;
+        }
+        return list;
+    }
+
+    public List<LinkedNode<E>> toNodeList() {
+        List<LinkedNode<E>> list = new ArrayList<>();
+        LinkedNode<E> current = head;
+        while (current != null) {
+            list.add(current);
+            current = current.next;
+        }
+        return list;
+    }
+
+}
+
+class GraphFace {
+    Graph g;
+    // List<Node> nodes;
+    DoubleLinkedList<Edge> face;
+    // Map<Edge, LinkedNode<Edge>> edgeMap;
+    // Map<Node, Edge> next, prev;
+
+    GraphFace(Graph g, List<Node> nodes, DoubleLinkedList<Edge> face, Map<Edge, LinkedNode<Edge>> edgeMap) {
+        this.g = g;
+        // this.nodes = nodes;
+        this.face = face;
+        // this.edgeMap = edgeMap;
+        // next = new HashMap<>();
+        // prev = new HashMap<>();
+        // LinkedNode<Edge> current = face.getFirst();
+        // for (int i = 0; i < face.size(); i++) {
+        //     Edge edge = current.value;
+        //     Node fromNode = edge.fromNode;
+        //     Node toNode = edge.toNode;
+        //     next.put(fromNode, edge);
+        //     prev.put(toNode, edge);
+        //     current = current.next();
+        // }
+    }
+
+    GraphFace(Graph g, DoubleLinkedList<Edge> face) {
+        this.g = g;
+        this.face = face;
+    }
+
+    // GraphFace split(Node u, Node v) {
+    //     Edge newEdgeU = g.addEdge(u, v);
+    //     Edge newEdgeV = g.addEdge(v, u);
+    //     Edge edge = next.get(u);
+    //     LinkedNode<Edge> edgeNode = edgeMap.get(edge);
+    //     if (edgeNode == null) {
+    //         return null; 
+    //     }
+
+    //     DoubleLinkedList<Edge> newFace = new DoubleLinkedList<>();
+    //     LinkedNode<Edge> current = edgeNode;
+    //     do {
+    //         newFace.add(current.value);
+    //         current = current.next();
+    //     } while (current != edgeNode);
+
+    //     return new GraphFace(g, nodes, newFace, edgeMap);
+    // }
+    GraphFace split(LinkedNode<Edge> u, LinkedNode<Edge> v) {
+        if (u == null || v == null || u == v) {
+            return null;
+        }
+        Edge newEdgeU = g.addEdge(u.value.fromNode, v.value.fromNode);
+        Edge newEdgeV = g.addEdge(v.value.fromNode, u.value.fromNode);
+        DoubleLinkedList<Edge> newFace = new DoubleLinkedList<>();
+        LinkedNode<Edge> current = u;
+        do {
+            LinkedNode<Edge> nextNode = current.next();
+            face.remove(current);
+            newFace.add(current);
+            current = nextNode;
+            if (current == null) {
+                if ((current = face.getFirst()) == null) {
+                    break;
+                }
+            }
+        } while (current != v);
+        face.addFirst(newEdgeU);
+        newFace.add(newEdgeV);
+        return new GraphFace(g, newFace);
+    }
+}
+
+class PlanarGraphGenerator {
+    public static Graph generatePlanarGraph(int n, int m) {
+        if (n < 1) n = 1;
+        if (m < n - 1) m = n - 1; 
+        if (m > n * 3 - 6) m = n * 3 - 6; 
+
+        Random random = new Random();
+        List<Node> nodes = new ArrayList<>();
+        List<Integer> degrees = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            nodes.add(new Node(i));
+            degrees.add(0);
+        }
+
+        List<DoubleLinkedList<Edge>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            adj.add(new DoubleLinkedList<>());
+        }
+
+        // build tree
+        Graph graph = new Graph(nodes);
+        for (int i = 1; i < n; i++) {
+            int j = random.nextInt(i);
+            DoubleLinkedList<Edge> edge = adj.get(j);
+            Edge eu = graph.addEdge(nodes.get(i), nodes.get(j));
+            Edge ev = graph.addEdge(nodes.get(j), nodes.get(i));
+
+            if (degrees.get(i) > 1) {
+                // LinkedNode<Integer> node = edge.getFirst();
+                adj.get(i).add(eu);
+                edge.insert(random.nextInt(edge.size()), ev);
+            }
+            else {
+                adj.get(i).add(eu);
+                edge.add(ev);
+            }
+            // System.err.println(i + " " + j);
+        }
+
+        DoubleLinkedList<Edge> faceEdge = new DoubleLinkedList<>(graph.dfs(nodes.get(0), adj));
+        // LinkedNode<Edge> current = faceEdge.getFirst();
+        // Map<Edge, LinkedNode<Edge>> edgeMap = new HashMap<>();
+        // for (int i = 0; i < faceEdge.size(); i++) {
+            // Edge edge = current.value;
+            // edgeMap.put(edge, current);
+            // current = current.next();
+        // }
+
+        DoubleLinkedList<GraphFace> faces = new DoubleLinkedList<>(new GraphFace(graph, faceEdge));
+        for (int i = n - 1; i < m; i++) {
+            // System.err.printf("n=%d, i=%d, faces.size()=%d\n", n, i, faces.size());
+            GraphFace face = faces.removeFirst().value;
+            GraphFace newFace = null;
+
+            List<LinkedNode<Edge>> faceEdges = face.face.toNodeList();
+            Collections.shuffle(faceEdges, random);
+
+            int p = faceEdges.size();
+            boolean found = false;
+            for (int j = 1; !found && j < p; j++) {
+                LinkedNode<Edge> u = faceEdges.get(j);
+                LinkedNode<Edge> nextU = u.next();
+                if (nextU == null) {
+                    nextU = face.face.getFirst();
+                }
+                for (int k = 0; k < i; k++) {
+                    LinkedNode<Edge> v = faceEdges.get(k);
+                    LinkedNode<Edge> nextV = v.next();
+                    if (nextV == null) {
+                        nextV = face.face.getFirst();
+                    }
+                    if (u == v || nextU == v || nextV == u) {
+                        continue; 
+                    }
+
+                    newFace = face.split(u, v);
+                    // System.err.println(u.value.fromNode.id + " " + u.value.toNode.id + " " +
+                    //         v.value.fromNode.id + " " + v.value.toNode.id);
+                    if (newFace != null) {
+                        found = true;
+                        break; 
+                    }
+                }
+            }
+
+            if (face.face.size() > 3) {
+                faces.add(face);
+            }
+            if (newFace.face.size() > 3) {
+                faces.add(newFace);
+            }
+        }
+        // faceEdge.addAll(graph.dfs(nodes.get(0)));
+
+
+        return graph;
+    }
+}
+
 public class Main {
+    public static void test2() throws IOException {
+        List<Integer> N = List.of(10, 20, 50, 100, 200);
+        Random random = new Random();
+
+        for (int i = 0; i < N.size(); i++) {
+            Kattio io = new Kattio(null, "tests/" + i + ".in");
+
+            int n = N.get(i);
+            int m = random.nextInt(n * 2 - 4) + n - 1; 
+            Graph g = PlanarGraphGenerator.generatePlanarGraph(n, m);
+            io.printf("%d %d\n%d %d\n", n, n, n, m);
+            Set<Integer> used = new HashSet<>();
+            List<Edge> edges = g.getEdges();
+            Collections.shuffle(edges, random);
+            for (Edge edge : edges) {
+                int eId = Math.min(edge.fromNode.id, edge.toNode.id) * n + Math.max(edge.fromNode.id, edge.toNode.id);
+                if (used.contains(eId)) continue;
+                used.add(eId);
+                io.printf("%d %d\n", edge.fromNode.id + 1, edge.toNode.id + 1);
+            }
+
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", i, n, n, n, m);
+        }
+    }
+
     public static void test1(){
-        int ROW = 20;
-        int COL = 20; // the graph is presented on a grid ROW x COL
-        int n  = 20;// number of nodes 0,1, 2, ..., n-1
+        Kattio io = new Kattio();
+        // int ROW = 20;
+        // int COL = 20; // the graph is presented on a grid ROW x COL
+        int ROW = io.nextInt();
+        int COL = io.nextInt(); // the graph is presented on a grid ROW x COL
+        // int n  = 20;// number of nodes 0,1, 2, ..., n-1
+        int n = io.nextInt(); // number of nodes 0,1, 2, ..., n-1
         List<Node> nodes = new ArrayList<>();
         for(int i = 0; i < n; i++){
             nodes.add(new Node(i));
         }
         Graph G = new Graph(nodes);
-//        G.addEdge(nodes.get(0),nodes.get(1));
-//        G.addEdge(nodes.get(0),nodes.get(2));
-//        G.addEdge(nodes.get(0),nodes.get(4));
-//        G.addEdge(nodes.get(1),nodes.get(3));
-//        G.addEdge(nodes.get(1),nodes.get(4));
-//        G.addEdge(nodes.get(2),nodes.get(4));
-//        G.addEdge(nodes.get(1),nodes.get(0));
-//        G.addEdge(nodes.get(2),nodes.get(0));
-//        G.addEdge(nodes.get(4),nodes.get(0));
-//        G.addEdge(nodes.get(3),nodes.get(1));
-//        G.addEdge(nodes.get(4),nodes.get(1));
-//        G.addEdge(nodes.get(4),nodes.get(2));
-
-//        G.addEdge(nodes.get(1), nodes.get(2));
-//        G.addEdge(nodes.get(2), nodes.get(1));
-//        G.addEdge(nodes.get(1), nodes.get(6));
-//        G.addEdge(nodes.get(6), nodes.get(1));
-//        G.addEdge(nodes.get(2), nodes.get(3));
-//        G.addEdge(nodes.get(3), nodes.get(2));
-//        G.addEdge(nodes.get(2), nodes.get(7));
-//        G.addEdge(nodes.get(7), nodes.get(2));
-//        G.addEdge(nodes.get(3), nodes.get(4));
-//        G.addEdge(nodes.get(4), nodes.get(3));
-//        G.addEdge(nodes.get(3), nodes.get(8));
-//        G.addEdge(nodes.get(8), nodes.get(3));
-//        G.addEdge(nodes.get(4), nodes.get(5));
-//        G.addEdge(nodes.get(5), nodes.get(4));
-//        G.addEdge(nodes.get(4), nodes.get(9));
-//        G.addEdge(nodes.get(9), nodes.get(4));
-//        G.addEdge(nodes.get(5), nodes.get(10));
-//        G.addEdge(nodes.get(10), nodes.get(5));
-//        G.addEdge(nodes.get(6), nodes.get(7));
-//        G.addEdge(nodes.get(7), nodes.get(6));
-//        G.addEdge(nodes.get(6), nodes.get(11));
-//        G.addEdge(nodes.get(11), nodes.get(6));
-//        G.addEdge(nodes.get(7), nodes.get(8));
-//        G.addEdge(nodes.get(8), nodes.get(7));
-//        G.addEdge(nodes.get(7), nodes.get(12));
-//        G.addEdge(nodes.get(12), nodes.get(7));
-//        G.addEdge(nodes.get(8), nodes.get(9));
-//        G.addEdge(nodes.get(9), nodes.get(8));
-//        G.addEdge(nodes.get(9), nodes.get(10));
-//        G.addEdge(nodes.get(10), nodes.get(9));
-//        G.addEdge(nodes.get(9), nodes.get(14));
-//        G.addEdge(nodes.get(14), nodes.get(9));
-//        G.addEdge(nodes.get(10), nodes.get(15));
-//        G.addEdge(nodes.get(15), nodes.get(10));
-//        G.addEdge(nodes.get(11), nodes.get(12));
-//        G.addEdge(nodes.get(12), nodes.get(11));
-//        G.addEdge(nodes.get(11), nodes.get(16));
-//        G.addEdge(nodes.get(16), nodes.get(11));
-//        G.addEdge(nodes.get(12), nodes.get(13));
-//        G.addEdge(nodes.get(13), nodes.get(12));
-//        G.addEdge(nodes.get(12), nodes.get(17));
-//        G.addEdge(nodes.get(17), nodes.get(12));
-//        G.addEdge(nodes.get(13), nodes.get(14));
-//        G.addEdge(nodes.get(14), nodes.get(13));
-//        G.addEdge(nodes.get(13), nodes.get(18));
-//        G.addEdge(nodes.get(18), nodes.get(13));
-//        G.addEdge(nodes.get(14), nodes.get(15));
-//        G.addEdge(nodes.get(15), nodes.get(14));
-//        G.addEdge(nodes.get(14), nodes.get(19));
-//        G.addEdge(nodes.get(19), nodes.get(14));
-//        G.addEdge(nodes.get(15), nodes.get(20));
-//        G.addEdge(nodes.get(20), nodes.get(15));
-//        G.addEdge(nodes.get(16), nodes.get(17));
-//        G.addEdge(nodes.get(17), nodes.get(16));
-//        G.addEdge(nodes.get(17), nodes.get(18));
-//        G.addEdge(nodes.get(18), nodes.get(17));
-//        G.addEdge(nodes.get(18), nodes.get(19));
-//        G.addEdge(nodes.get(19), nodes.get(18));
-//        G.addEdge(nodes.get(19), nodes.get(20));
-//        G.addEdge(nodes.get(20), nodes.get(19));
-
-        G.addEdge(nodes.get(0), nodes.get(1)); G.addEdge(nodes.get(1), nodes.get(0));
-        G.addEdge(nodes.get(0), nodes.get(5)); G.addEdge(nodes.get(5), nodes.get(0));
-        G.addEdge(nodes.get(1), nodes.get(2)); G.addEdge(nodes.get(2), nodes.get(1));
-        G.addEdge(nodes.get(1), nodes.get(6)); G.addEdge(nodes.get(6), nodes.get(1));
-        G.addEdge(nodes.get(2), nodes.get(3)); G.addEdge(nodes.get(3), nodes.get(2));
-        G.addEdge(nodes.get(2), nodes.get(7)); G.addEdge(nodes.get(7), nodes.get(2));
-        G.addEdge(nodes.get(3), nodes.get(4)); G.addEdge(nodes.get(4), nodes.get(3));
-        G.addEdge(nodes.get(3), nodes.get(8)); G.addEdge(nodes.get(8), nodes.get(3));
-        G.addEdge(nodes.get(4), nodes.get(9)); G.addEdge(nodes.get(9), nodes.get(4));
-        G.addEdge(nodes.get(5), nodes.get(6)); G.addEdge(nodes.get(6), nodes.get(5));
-        G.addEdge(nodes.get(5), nodes.get(10)); G.addEdge(nodes.get(10), nodes.get(5));
-        G.addEdge(nodes.get(6), nodes.get(7)); G.addEdge(nodes.get(7), nodes.get(6));
-        G.addEdge(nodes.get(6), nodes.get(11)); G.addEdge(nodes.get(11), nodes.get(6));
-        G.addEdge(nodes.get(7), nodes.get(8)); G.addEdge(nodes.get(8), nodes.get(7));
-        G.addEdge(nodes.get(8), nodes.get(9)); G.addEdge(nodes.get(9), nodes.get(8));
-        G.addEdge(nodes.get(8), nodes.get(13)); G.addEdge(nodes.get(13), nodes.get(8));
-        G.addEdge(nodes.get(9), nodes.get(14)); G.addEdge(nodes.get(14), nodes.get(9));
-        G.addEdge(nodes.get(10), nodes.get(11)); G.addEdge(nodes.get(11), nodes.get(10));
-        G.addEdge(nodes.get(10), nodes.get(15)); G.addEdge(nodes.get(15), nodes.get(10));
-        G.addEdge(nodes.get(11), nodes.get(12)); G.addEdge(nodes.get(12), nodes.get(11));
-        G.addEdge(nodes.get(11), nodes.get(16)); G.addEdge(nodes.get(16), nodes.get(11));
-        G.addEdge(nodes.get(12), nodes.get(13)); G.addEdge(nodes.get(13), nodes.get(12));
-        G.addEdge(nodes.get(12), nodes.get(17)); G.addEdge(nodes.get(17), nodes.get(12));
-        G.addEdge(nodes.get(13), nodes.get(14)); G.addEdge(nodes.get(14), nodes.get(13));
-        G.addEdge(nodes.get(13), nodes.get(18)); G.addEdge(nodes.get(18), nodes.get(13));
-        G.addEdge(nodes.get(14), nodes.get(19)); G.addEdge(nodes.get(19), nodes.get(14));
-        G.addEdge(nodes.get(15), nodes.get(16)); G.addEdge(nodes.get(16), nodes.get(15));
-        G.addEdge(nodes.get(16), nodes.get(17)); G.addEdge(nodes.get(17), nodes.get(16));
-        G.addEdge(nodes.get(17), nodes.get(18)); G.addEdge(nodes.get(18), nodes.get(17));
-        G.addEdge(nodes.get(18), nodes.get(19)); G.addEdge(nodes.get(19), nodes.get(18));
-
-//        G.addEdge(nodes.get(0), nodes.get(1));
-//        G.addEdge(nodes.get(1), nodes.get(0));
-//
-//        G.addEdge(nodes.get(1), nodes.get(2));
-//        G.addEdge(nodes.get(2), nodes.get(1));
-//
-//        G.addEdge(nodes.get(2), nodes.get(3));
-//        G.addEdge(nodes.get(3), nodes.get(2));
-//
-//        G.addEdge(nodes.get(3), nodes.get(4));
-//        G.addEdge(nodes.get(4), nodes.get(3));
-//
-//        G.addEdge(nodes.get(4), nodes.get(5));
-//        G.addEdge(nodes.get(5), nodes.get(4));
-//
-//        G.addEdge(nodes.get(5), nodes.get(6));
-//        G.addEdge(nodes.get(6), nodes.get(5));
-//
-//        G.addEdge(nodes.get(6), nodes.get(7));
-//        G.addEdge(nodes.get(7), nodes.get(6));
-//
-//        G.addEdge(nodes.get(7), nodes.get(8));
-//        G.addEdge(nodes.get(8), nodes.get(7));
-//
-//        G.addEdge(nodes.get(8), nodes.get(9));
-//        G.addEdge(nodes.get(9), nodes.get(8));
-//
-//        G.addEdge(nodes.get(9), nodes.get(10));
-//        G.addEdge(nodes.get(10), nodes.get(9));
-//
-//        G.addEdge(nodes.get(10), nodes.get(11));
-//        G.addEdge(nodes.get(11), nodes.get(10));
-//
-//        G.addEdge(nodes.get(11), nodes.get(12));
-//        G.addEdge(nodes.get(12), nodes.get(11));
-//
-//        G.addEdge(nodes.get(12), nodes.get(13));
-//        G.addEdge(nodes.get(13), nodes.get(12));
-//
-//        G.addEdge(nodes.get(13), nodes.get(14));
-//        G.addEdge(nodes.get(14), nodes.get(13));
-//
-//        G.addEdge(nodes.get(14), nodes.get(15));
-//        G.addEdge(nodes.get(15), nodes.get(14));
-//
-//        G.addEdge(nodes.get(15), nodes.get(16));
-//        G.addEdge(nodes.get(16), nodes.get(15));
-//
-//        G.addEdge(nodes.get(16), nodes.get(17));
-//        G.addEdge(nodes.get(17), nodes.get(16));
-//
-//        G.addEdge(nodes.get(17), nodes.get(18));
-//        G.addEdge(nodes.get(18), nodes.get(17));
-//
-//        G.addEdge(nodes.get(18), nodes.get(19));
-//        G.addEdge(nodes.get(19), nodes.get(18));
-//
-//        G.addEdge(nodes.get(0), nodes.get(4));
-//        G.addEdge(nodes.get(4), nodes.get(0));
-//
-//        G.addEdge(nodes.get(1), nodes.get(5));
-//        G.addEdge(nodes.get(5), nodes.get(1));
-//
-//        G.addEdge(nodes.get(2), nodes.get(6));
-//        G.addEdge(nodes.get(6), nodes.get(2));
-//
-//        G.addEdge(nodes.get(3), nodes.get(7));
-//        G.addEdge(nodes.get(7), nodes.get(3));
-//
-//        G.addEdge(nodes.get(4), nodes.get(8));
-//        G.addEdge(nodes.get(8), nodes.get(4));
-//
-//        G.addEdge(nodes.get(5), nodes.get(9));
-//        G.addEdge(nodes.get(9), nodes.get(5));
-//
-//        G.addEdge(nodes.get(6), nodes.get(10));
-//        G.addEdge(nodes.get(10), nodes.get(6));
-//
-//        G.addEdge(nodes.get(7), nodes.get(11));
-//        G.addEdge(nodes.get(11), nodes.get(7));
-//
-//        G.addEdge(nodes.get(8), nodes.get(12));
-//        G.addEdge(nodes.get(12), nodes.get(8));
-//
-//        G.addEdge(nodes.get(9), nodes.get(13));
-//        G.addEdge(nodes.get(13), nodes.get(9));
-//
-//        G.addEdge(nodes.get(10), nodes.get(14));
-//        G.addEdge(nodes.get(14), nodes.get(10));
-
+        int n_edges = io.nextInt(); // number of edges
+        for (int i = 0; i < n_edges; i++) {
+            int u = io.nextInt() - 1;
+            int v = io.nextInt() - 1;
+            if (u == v) continue; // skip self-loops
+            Node fromNode = G.getNode(u);
+            Node toNode = G.getNode(v);
+            if (fromNode == null || toNode == null) continue;
+            G.addEdge(fromNode, toNode);
+            G.addEdge(toNode, fromNode);
+        }
 //        Segment2D segment1 = new Segment2D(new Point2D(2, 16), new Point2D(7, 8));
 //        Segment2D segment2 = new Segment2D(new Point2D(0, 12), new Point2D(7, 13));
 //        Segment2D segment3 = new Segment2D(new Point2D(0, 7), new Point2D(7, 13));
@@ -2028,10 +2452,11 @@ public class Main {
         model.close();
 
 
-        for (Node node : G.getNodes()) {
-            VarNodePosition v = varPos.get(node);
-            System.err.printf("%d: (%d, %d)\n", node.id, v.x(), v.y());
-        }
+        // for (Node node : G.getNodes()) {
+        //     VarNodePosition v = varPos.get(node);
+        //     System.err.printf("%d: (%d, %d)\n", node.id, v.x(), v.y());
+        // }
+
         LexMultiValues solutionEval = null;
         List<NodePosition> solutionPositions = new ArrayList<>();
         for (Node node : G.getNodes()) {
@@ -2046,7 +2471,7 @@ public class Main {
         while (check || counter++ < maxCounter) {
             check = false;
             { // simple hill climbing
-                System.err.println("simple hill climbing");
+                // System.err.println("simple hill climbing");
                 boolean improved = true;
                 // for(int it = 1; it <= 100000 && improved; it++){
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
@@ -2113,7 +2538,7 @@ public class Main {
 
             if (false)
             { // tabu search
-                System.err.println("tabu search");
+                // System.err.println("tabu search");
                 int tabuSize = 5;
                 Queue<NodePosition> tabuList = new LinkedList<>();
                 LexMultiValues currentEval = new LexMultiValues(List.of(FObj.evaluation()));
@@ -2183,7 +2608,7 @@ public class Main {
             }
 
             { // simulated annealing
-                System.err.println("simulated annealing");
+                // System.err.println("simulated annealing");
                 double temperature = 100.0;
                 double coolingRate = 0.9995;
 
@@ -2231,7 +2656,7 @@ public class Main {
 
 //            if (false)
             if (n > 1) { // two points move
-                System.err.println("two points move");
+                // System.err.println("two points move");
                 int iteration = 0, maxIteration = 30000;
                 final double acceptWorseRate = 0.0005;
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
@@ -2294,7 +2719,7 @@ public class Main {
 
 //            if (false)
             if (n > 2) { // three points move
-                System.err.println("three points move");
+                // System.err.println("three points move");
                 int iteration = 0;
                 int maxIteration = 10000;
                 double acceptWorseRate = 0.0005;
@@ -2376,7 +2801,7 @@ public class Main {
 
 //            if (false)
             if (n > 3) { // four points move
-                System.err.println("four points move");
+                // System.err.println("four points move");
                 int iteration = 0;
                 int maxIteration = 10000;
                 double acceptWorseRate = 0.0005;
@@ -2492,9 +2917,13 @@ public class Main {
 //             VarNodePosition v = varPos.get(node);
 //             System.err.printf("%d: (%d, %d),\n", node.id, v.x(), v.y());
 //         }
-        System.err.printf("%s %s\n", str, solutionEval);
+        // System.err.printf("%s %s\n", str, solutionEval);
+        // for (NodePosition pos : solutionPositions) {
+        //     System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
+        // }
         for (NodePosition pos : solutionPositions) {
-            System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
+            // System.out.printf("%d %d %d\n", pos.id(), pos.x(), pos.y());
+            io.printf("%d %d\n", pos.x(), pos.y());
         }
 
 //        {
@@ -2512,11 +2941,17 @@ public class Main {
 //            Function fObj = new ObjectiveFunction(f3, f2, f1, f4, 100.0, 200.0, 1.0, 4);
 //            System.err.println(fObj);
 //        }
+        io.close();
     }
     public static void main(String[] args){
-        long startTime = System.currentTimeMillis();
-        test1();
-        long endTime = System.currentTimeMillis();
-        System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
+        // long startTime = System.currentTimeMillis();
+        // test1();
+        try {
+            test2();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // long endTime = System.currentTimeMillis();
+        // System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
     }
 }
