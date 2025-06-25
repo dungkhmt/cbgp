@@ -1,10 +1,32 @@
-package CBLS;
+package Planar;
 
-
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 // import javax.security.auth.kerberos.KeyTab;
 // import javax.swing.text.Segment;
-import java.util.*;
-import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Random;
+import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 class Pair<K, V> {
     public K a;
@@ -154,6 +176,66 @@ class Point2D {
         return res;
     }
 
+    public Point2D ray(double angle, int minX, int minY, int maxX, int maxY) {
+        double vx = Math.cos(angle);
+        double vy = Math.sin(angle);
+
+        // u = x + t * vx
+        // v = y + t * vy
+        double u, v, t;
+
+        // cut minX
+        if (Math.abs(vx) >= eps) {
+            t = (minX - x) / vx;
+            if (t > -eps) {
+                u = minX;
+                v = y + t * vy;
+                if (v >= minY && v <= maxY) {
+                    return new Point2D(u, v);
+                }
+            }
+        }
+
+        // cut maxX
+        // System.err.println("vx = " + vx + " vy = " + vy + " minX = " + minX + " minY = " + minY + " maxX = " + maxX + " maxY = " + maxY);
+        if (Math.abs(vx) >= eps) {
+            t = (maxX - x) / vx;
+            if (t > -eps) {
+                u = maxX;
+                v = y + t * vy;
+                if (v >= minY && v <= maxY) {
+                    return new Point2D(u, v);
+                }
+            }
+        }
+
+        // cut minY
+        if (Math.abs(vy) >= eps) {
+            t = (minY - y) / vy;
+            if (t > -eps) {
+                u = x + t * vx;
+                v = minY;
+                if (u >= minX && u <= maxX) {
+                    return new Point2D(u, v);
+                }
+            }
+        }
+
+        // cut maxY
+        if (Math.abs(vy) >= eps) {
+            t = (maxY - y) / vy;
+            if (t > -eps) {
+                u = x + t * vx;
+                v = maxY;
+                if (u >= minX && u <= maxX) {
+                    return new Point2D(u, v);
+                }
+            }
+        }
+
+        return null;
+    }
+
     public int countCoincide(List<Point2D> points, Point2D point) {
         int n = points.size();
         double v = Math.atan2(point.getY() - y, point.getX() - x);
@@ -169,8 +251,14 @@ class Point2D {
     public double getX() {
         return x;
     }
+    public double x() {
+        return x;
+    }
 
     public double getY() {
+        return y;
+    }
+    public double y() {
         return y;
     }
 }
@@ -460,7 +548,9 @@ class Graph {
     public Node getNode(int id) {
         return nodeMap.get(id);
     }
-
+    public Node getNodeI(int id) {
+        return nodes.get(id);
+    }
 
     private Set<Edge> visited;
     private List<Edge> result;
@@ -550,6 +640,32 @@ class Graph {
         return result;
     }
 
+    public List<Integer> bfs(Node start, List<DoubleLinkedList<Edge>> adj) {
+        List<Integer> distances = new ArrayList<>();
+        int n = nodes.size();
+        for (int i = 0; i < n; i++) {
+            distances.add(Integer.MAX_VALUE);
+        }
+
+        Queue<Node> queue = new LinkedList<>();
+        queue.add(start);
+        distances.set(start.id, 0);
+        while (!queue.isEmpty()) {
+            Node current = queue.poll();
+            LinkedNode<Edge> edge = adj.get(current.id).getFirst();
+            while (edge != null) {
+                Node next = edge.value.getRemaining(current);
+                if (next != null && distances.get(next.id) == Integer.MAX_VALUE) {
+                    distances.set(next.id, distances.get(current.id) + 1);
+                    queue.add(next);
+                }
+                edge = edge.next;
+            }
+        }
+
+        return distances;
+    }
+
 
 }
 
@@ -562,6 +678,10 @@ class CBLSGPModel{
     public CBLSGPModel() {
         varNodePositions = new ArrayList<>();
         F = new ArrayList<>();
+    }
+
+    public VarNodePosition getVarNode(int id){
+        return varNodePositions.get(id);
     }
 
     public void addVarNode(VarNodePosition varNodePosition){
@@ -1904,6 +2024,13 @@ class LexMultiFunctions{
         F.add(f);
     }
 
+    public LexMultiValues evaluation() {
+        List<Double> vals = new ArrayList<>();
+        for (Function f : F)
+            vals.add(f.evaluation());
+        return new LexMultiValues(vals);
+    }
+
     public LexMultiValues evaluateOneNodeMove(VarNodePosition v, int x, int y){
         List<Double> vals = new ArrayList<>();
         for (Function f : F)
@@ -2371,6 +2498,10 @@ class PlanarGraphGenerator {
 }
 
 public class Main {
+    static final int numDirections = 8;
+    static final Integer[] dirX = {0, 1, 0, -1, 1, 1, -1, -1};
+    static final Integer[] dirY = {1, 0, -1, 0, 1, -1, -1, 1};
+
     public static void test2() throws IOException {
         List<Integer> N = List.of(10, 20, 50, 100, 200);
         Random random = new Random();
@@ -2411,32 +2542,27 @@ public class Main {
         }
         Graph G = new Graph(nodes);
         int n_edges = io.nextInt(); // number of edges
+        List<DoubleLinkedList<Edge>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            adj.add(new DoubleLinkedList<>());
+        }
         for (int i = 0; i < n_edges; i++) {
             int u = io.nextInt() - 1;
             int v = io.nextInt() - 1;
-            if (u == v) continue; // skip self-loops
+            // if (u == v) continue; // skip self-loops
+            
             io.printf("(%d, %d), ", u, v); 
+
             Node fromNode = G.getNode(u);
             Node toNode = G.getNode(v);
             if (fromNode == null || toNode == null) continue;
-            G.addEdge(fromNode, toNode);
-            G.addEdge(toNode, fromNode);
-        }
-        io.close();
-        if (true) return ;
-//        Segment2D segment1 = new Segment2D(new Point2D(2, 16), new Point2D(7, 8));
-//        Segment2D segment2 = new Segment2D(new Point2D(0, 12), new Point2D(7, 13));
-//        Segment2D segment3 = new Segment2D(new Point2D(0, 7), new Point2D(7, 13));
-//        Point2D p1 = segment1.intersect(segment2);
-//        Point2D p2 = segment1.intersect(segment3);
-//        Point2D p3 = segment2.intersect(segment3);
-//        System.err.println(p1 + " " + p2 + " " + p3);
-//        if (p1 == null) return ;
 
-        // TreeMultiset<Double> tmp = new TreeMultiset<>(new DoubleCompare());
-        // tmp.add(0.);
-        // tmp.add(1e-10);
-        // System.err.println(tmp.countContains(0.));
+            Edge eu = G.addEdge(fromNode, toNode);
+            adj.get(u).add(eu);
+            Edge ev = G.addEdge(toNode, fromNode);
+            adj.get(v).add(ev);
+        }
+        io.println();
 
         Map<Node, VarNodePosition> varPos = new HashMap<>();
         Set<Integer> DX = new HashSet<>();
@@ -2450,12 +2576,69 @@ public class Main {
         }
 
         CBLSGPModel model = new CBLSGPModel();
-        Random rnd = new Random(23480329);
+//         Random rnd = new Random(23480329);
         for (Node node : G.getNodes()) {
             VarNodePosition v = varPos.get(node);
             model.addVarNode(v);
-            model.move(v, rnd.nextInt(COL + 1), rnd.nextInt(ROW + 1));
+            // model.move(v, rnd.nextInt(COL + 1), rnd.nextInt(ROW + 1));
 //            F.propagateOneNodeMove(v, v.x(), v.y());
+        }
+
+        List<List<Integer>> radius = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            radius.add(new ArrayList<>());
+        }
+        for (Node node : G.getNodes()) {
+            List<Integer> dist = G.bfs(node, adj);
+            radius.get(Collections.max(dist) + 1 >> 1).add(node.id);
+        }
+
+
+        int count = 0;
+        for (int i = 0; i < n; i++) {
+            count += radius.get(i).size() > 0 ? 1 : 0;
+        }
+
+        double centerX = COL / 2.0;
+        double centerY = ROW / 2.0;
+        Point2D center = new Point2D(centerX, centerY);
+
+        boolean isFirst = true;
+        for (int i = 0, j = 0; i < n; i++) {
+            if (radius.get(i).size() > 0) {
+                if (isFirst) {
+                    if (radius.get(i).size() == 1) {
+                        int id = radius.get(i).get(0);
+                        VarNodePosition v = model.getVarNode(id);
+                        model.move(v, (int) centerX, (int) centerY);
+                        count--;
+
+                        isFirst = false;
+                        continue;
+                    }
+                    isFirst = false;
+                }
+
+                j++;
+                int m = radius.get(i).size();
+                double angle = 2 * Math.PI / m;
+                double polar = 0;
+                for (Integer id : radius.get(i)) {
+                    VarNodePosition v = model.getVarNode(id);
+                    Point2D cutPoint = center.ray(polar, 0, 0, COL, ROW);
+                    // if (cutPoint == null) {
+                    //     System.err.println(center.x() + " " + center.y() + " " + polar + " " + i + " " + j + " " + Math.cos(polar) + " " + Math.sin(polar));
+                    // }
+
+                    double distance = center.distance(cutPoint) / count * j;
+                    double x = centerX + distance * Math.cos(polar) + 0.5;
+                    double y = centerY + distance * Math.sin(polar) + 0.5;
+                    model.move(v, (int) x, (int) y);
+
+                    polar += angle;
+                    // System.err.printf("(%d, %d) ", x, y);
+                }
+            }
         }
 
         NumberIntersectionEdges F3 = new NumberIntersectionEdges(G,varPos);// to be minimized
@@ -2464,7 +2647,8 @@ public class Main {
         MinDistanceNodeEdge F4 = new MinDistanceNodeEdge(G,varPos);// to be maximized
 
         LexMultiFunctions F = new LexMultiFunctions();
-        Function FObj = new ObjectiveFunction(F3, F2, F1, F4, 100.0, 200.0, 1.0, 4);
+        Function FObj = new ObjectiveFunction(F3, F2, F1, F4, 
+                                100000.0, 400.0, 20. / Math.sqrt((ROW * ROW + COL * COL) / 2.), 80. / Math.sqrt((ROW * ROW + COL * COL) / 2.));
         model.addFunction(FObj);
         F.add(FObj);
 //        F.add(F3); F.add(F2); F.add(F1);
@@ -2488,176 +2672,141 @@ public class Main {
         final int maxCounter = 3;
         int counter = 0;
         StringBuilder str = new StringBuilder();
+        // if (false)
         while (check || counter++ < maxCounter) {
             check = false;
             { // simple hill climbing
-                // System.err.println("simple hill climbing");
-                boolean improved = true;
-                // for(int it = 1; it <= 100000 && improved; it++){
-                LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
-//                int it = 0;
-                while (improved) {
-//                    System.err.println(it++);
-                    improved = false;
-                    VarNodePosition selNode = null;
-                    int selX = -1;
-                    int selY = -1;
-//                    StringBuilder str = new StringBuilder();
-                    for (Node node : G.getNodes()) {
-                        VarNodePosition v = varPos.get(node);
-                        for (int x : DX) {
-                            for (int y : DY) {
-//                                System.err.println("Evaluating node " + node.id + " at (" + x + ", " + y + ")... ");
-                                LexMultiValues eval = F.evaluateOneNodeMove(v, x, y);
+//                 // System.err.println("simple hill climbing");
+//                 boolean improved = true;
+//                 // for(int it = 1; it <= 100000 && improved; it++){
+//                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
+// //                int it = 0;
+//                 while (improved) {
+// //                    System.err.println(it++);
+//                     improved = false;
+//                     VarNodePosition selNode = null;
+//                     int selX = -1;
+//                     int selY = -1;
+// //                    StringBuilder str = new StringBuilder();
+//                     for (Node node : G.getNodes()) {
+//                         VarNodePosition v = varPos.get(node);
+//                         for (int x : DX) {
+//                             for (int y : DY) {
+// //                                System.err.println("Evaluating node " + node.id + " at (" + x + ", " + y + ")... ");
+//                                 LexMultiValues eval = F.evaluateOneNodeMove(v, x, y);
 
-//                                System.err.print("[" + eval + " " + node.id + " " + x + " " + y + "] ");
-//                                for (Double f : eval.values) {
-//                                    System.err.printf("%.2f ", f);
-//                                }
-//                                System.err.println();
-                                if (eval.better(bestEval)) {
+// //                                System.err.print("[" + eval + " " + node.id + " " + x + " " + y + "] ");
+// //                                for (Double f : eval.values) {
+// //                                    System.err.printf("%.2f ", f);
+// //                                }
+// //                                System.err.println();
+//                                 if (eval.better(bestEval)) {
 
-//                                    str.setLength(0);
-//                                    for (Function f : F.F) {
-//                                        str.append(f);
-//                                    }
-                                    selNode = v;
-                                    selX = x;
-                                    selY = y;
-                                    bestEval = eval;
-                                    improved = true;
-                                }
-                            }
-                        }
-                    }
-                    if (selNode == null) {
-                        break;
-                    }
+// //                                    str.setLength(0);
+// //                                    for (Function f : F.F) {
+// //                                        str.append(f);
+// //                                    }
+//                                     selNode = v;
+//                                     selX = x;
+//                                     selY = y;
+//                                     bestEval = eval;
+//                                     improved = true;
+//                                 }
+//                             }
+//                         }
+//                     }
+//                     if (selNode == null) {
+//                         break;
+//                     }
 
-                    // perform the move
-//                    System.err.println("Best move: " + selNode.id + " to (" + selX + ", " + selY + ") with evaluation: " + bestEval);
-                    F.propagateOneNodeMove(selNode, selX, selY);
-//                    for (Function f : F.F) {
-//                        str.append(f);
-//                    }
-//                    System.err.println(bestEval + " " + str + " " + selNode.id + " " + selX + " " + selY);
-                    model.move(selNode, selX, selY);
+//                     // perform the move
+// //                    System.err.println("Best move: " + selNode.id + " to (" + selX + ", " + selY + ") with evaluation: " + bestEval);
+//                     F.propagateOneNodeMove(selNode, selX, selY);
+// //                    for (Function f : F.F) {
+// //                        str.append(f);
+// //                    }
+// //                    System.err.println(bestEval + " " + str + " " + selNode.id + " " + selX + " " + selY);
+//                     model.move(selNode, selX, selY);
 
-                    if (bestEval.better(solutionEval)) {
-                        str.setLength(0);
-                        for (Function f : F.F) {
-                            str.append(f);
-                        }
-                        check = true;
-                        counter = 0;
-                        solutionEval = bestEval;
-                        model.setNodePositionsValue(solutionPositions);
-                    }
-                }
+//                     if (bestEval.better(solutionEval)) {
+//                         str.setLength(0);
+//                         for (Function f : F.F) {
+//                             str.append(f);
+//                         }
+//                         check = true;
+//                         counter = 0;
+//                         solutionEval = bestEval;
+//                         model.setNodePositionsValue(solutionPositions);
+//                     }
+//                 }
             }
+            // int randomCountRange = maxCounter * 200;
 
-            if (false)
-            { // tabu search
-                // System.err.println("tabu search");
-                int tabuSize = 5;
-                Queue<NodePosition> tabuList = new LinkedList<>();
-                LexMultiValues currentEval = new LexMultiValues(List.of(FObj.evaluation()));
-                int iteration = 0, maxIteration = 100;
-                Map<Long, Boolean> isTabu = new HashMap<>();
+            // if (false)
+            if (n > 1) { // two points move
+                // System.err.println("two points move");
+                int iteration = 0, maxIteration = 500;
+                // LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
+                LexMultiValues bestEval = F.evaluation();
+                Random random = new Random(82334091);
+
                 while (iteration < maxIteration) {
                     iteration++;
+                    int i1 = random.nextInt(G.getNodes().size()), i2;
+                    do {
+                        i2 = random.nextInt(G.getNodes().size());
+                    } while (i1 == i2);
 
-                    int selX = -1, selY = -1;
-                    LexMultiValues bestEval = null;
-                    VarNodePosition selNode = null;
-                    for (Node node : G.getNodes()) {
-                        VarNodePosition v = varPos.get(node);
-                        for (int x : DX) {
-                            for (int y : DY) {
-                                // boolean isTabu = false;
-                                // for (NodePosition pos : tabuList) {
-                                //     if (pos.id() == node.id && pos.x() == x && pos.y() == y) {
-                                //         isTabu = true;
-                                //         break;
-                                //     }
-                                // }
-                                // if (isTabu) continue;
-                                long code = (long) node.id * (COL + 1) * (ROW + 1) + (long) x * (ROW + 1) + y;
-                                if (isTabu.containsKey(code)) continue;
+                    Node node1 = G.getNodes().get(i1);
+                    Node node2 = G.getNodes().get(i2);
+                    VarNodePosition v1 = varPos.get(node1);
+                    VarNodePosition v2 = varPos.get(node2);
+                    int oldX1 = v1.x();
+                    int oldY1 = v1.y();
+                    // int oldX2 = v2.x();
+                    // int oldY2 = v2.y();
 
-                                LexMultiValues eval = F.evaluateOneNodeMove(v, x, y);
-                                if (eval.better(bestEval)) {
+                    LexMultiValues betterEval = F.evaluation();
+                    int betterDir = -1;
+                    for (int dir = 0; dir < numDirections; dir++) {
+                        int newX1 = v1.x() + dirX[dir];
+                        int newY1 = v1.y() + dirY[dir];
+                        if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+                        F.propagateOneNodeMove(v1, newX1, newY1);
+                        model.move(v1, newX1, newY1);
 
-                                    selNode = v;
-                                    selX = x;
-                                    selY = y;
-                                    bestEval = eval;
-                                }
-                            }
+                        for (int dir2 = 0; dir2 < numDirections; dir2++) {
+                            int newX2 = v2.x() + dirX[dir2];
+                            int newY2 = v2.y() + dirY[dir2];
+                            if (newX2 < 0 || newX2 > COL || newY2 < 0 || newY2 > ROW) continue;
+
+                            LexMultiValues newEval = F.evaluateOneNodeMove(v2, newX2, newY2);
+                            if (newEval.better(betterEval)) {
+                                betterEval = newEval;
+                                betterDir = dir * numDirections + dir2;
+                            } 
                         }
+                        F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        model.move(v1, oldX1, oldY1);
                     }
 
-                    if (bestEval == null) {
-                        continue;
-                    }
 
-                    long code = (long) selNode.id * (COL + 1) * (ROW + 1) + (long) selX * (ROW + 1) + selY;
-                    isTabu.put(code, true);
-                    tabuList.add(new NodePosition(selNode.id, selNode.x(), selNode.y()));
-                    if (tabuList.size() > tabuSize) {
-                        NodePosition pos = tabuList.poll();
-                        long code1 = (long) pos.id() * (COL + 1) * (ROW + 1) + (long) pos.x() * (ROW + 1) + pos.y();
-                        isTabu.remove(code1);
-                    }
+                    if (betterDir >= 0) {
+                        bestEval = betterEval;
 
-                    F.propagateOneNodeMove(selNode, selX, selY);
-                    model.move(selNode, selX, selY);
-                    currentEval = bestEval;
-                    if (currentEval.better(solutionEval)) {
-                        str.setLength(0);
-                        for (Function f : F.F) {
-                            str.append(f);
-                        }
+                        int dir1 = betterDir / numDirections;
+                        int dir2 = betterDir % numDirections;
+                        int newX1 = v1.x() + dirX[dir1];
+                        int newY1 = v1.y() + dirY[dir1];
+                        int newX2 = v2.x() + dirX[dir2];
+                        int newY2 = v2.y() + dirY[dir2];
 
-                        check = true;
-                        counter = 0;
-                        solutionEval = currentEval;
-                        model.setNodePositionsValue(solutionPositions);
-                    }
-                }
-            }
+                        F.propagateOneNodeMove(v1, newX1, newY1);
+                        F.propagateOneNodeMove(v2, newX2, newY2);
+                        model.move(v1, newX1, newY1);
+                        model.move(v2, newX2, newY2);
 
-            { // simulated annealing
-                // System.err.println("simulated annealing");
-                double temperature = 100.0;
-                double coolingRate = 0.9995;
-
-                Random random = new Random(290834301);
-                LexMultiValues currentEval = new LexMultiValues(List.of(FObj.evaluation()));
-
-                while (temperature > 0.01) {
-                    Node randomeNode = G.getNodes().get(random.nextInt(G.getNodes().size()));
-                    VarNodePosition v = varPos.get(randomeNode);
-                    int newX = random.nextInt(COL + 1);
-                    int newY = random.nextInt(ROW + 1);
-
-                    LexMultiValues newEval = F.evaluateOneNodeMove(v, newX, newY);
-                    boolean accept = false;
-                    if (newEval.better(currentEval)) {
-                        accept = true;
-                    } else {
-                        double delta = newEval.values.getFirst() - currentEval.values.getFirst();
-                        if (Math.exp(delta / temperature) > random.nextDouble()) {
-                            accept = true;
-                        }
-                    }
-
-                    if (accept) {
-                        F.propagateOneNodeMove(v, newX, newY);
-                        model.move(v, newX, newY);
-
-                        currentEval = newEval;
-                        if (currentEval.better(solutionEval)) {
+                        if (betterEval.better(solutionEval)) {
                             str.setLength(0);
                             for (Function f : F.F) {
                                 str.append(f);
@@ -2665,19 +2814,684 @@ public class Main {
 
                             check = true;
                             counter = 0;
-                            solutionEval = currentEval;
+                            solutionEval = bestEval;
                             model.setNodePositionsValue(solutionPositions);
                         }
                     }
 
-                    temperature *= coolingRate;
+                    // if (counter > 1 && random.nextInt(randomCountRange) < 1) {
+                        // betterEval = null;
+                        // betterDir = -1;
+                        // int betterStep = -1;
+                        // int betterStep2 = -1;
+                        // for (int dir = 0; dir < numDirections; dir++) {
+                        //     int step = Math.max(ROW, COL);
+                        //     if (dirX[dir] < 0) step = Math.min(step, v1.x());
+                        //     else if (dirX[dir] > 0) step = Math.min(step, COL - v1.x());
+                        //     if (dirY[dir] < 0) step = Math.min(step, v1.y());
+                        //     else if (dirY[dir] > 0) step = Math.min(step, ROW - v1.y());
+                        //     if (step < 2) continue;
+                        //     step = random.nextInt(2, step + 1);
+
+                        //     int newX1 = v1.x() + dirX[dir] * step;
+                        //     int newY1 = v1.y() + dirY[dir] * step;
+                        //     // if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+                        //     F.propagateOneNodeMove(v1, newX1, newY1);
+                        //     model.move(v1, newX1, newY1);
+
+                        //     for (int dir2 = 0; dir2 < numDirections; dir2++) {
+                        //         int step2 = Math.max(ROW, COL);
+                        //         if (dirX[dir2] < 0) step2 = Math.min(step2, v2.x());
+                        //         else if (dirX[dir2] > 0) step2 = Math.min(step2, COL - v2.x());
+                        //         if (dirY[dir2] < 0) step2 = Math.min(step2, v2.y());
+                        //         else if (dirY[dir2] > 0) step2 = Math.min(step2, ROW - v2.y());
+                        //         if (step2 < 2) continue;
+                        //         step2 = random.nextInt(2, step2 + 1);
+
+                        //         int newX2 = v2.x() + dirX[dir2] * step2;
+                        //         int newY2 = v2.y() + dirY[dir2] * step2;
+                        //         // if (newX2 < 0 || newX2 > COL || newY2 < 0 || newY2 > ROW) continue;
+
+                        //         LexMultiValues newEval = F.evaluateOneNodeMove(v2, newX2, newY2);
+                        //         if (newEval.better(betterEval)) {
+                        //             betterEval = newEval;
+                        //             betterDir = dir * numDirections + dir2;
+                        //             betterStep = step;
+                        //             betterStep2 = step2;
+                        //         } 
+                        //     }
+
+                        //     F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        //     model.move(v1, oldX1, oldY1);
+                        // }
+
+                        // if (betterDir >= 0) {
+                        //     bestEval = betterEval;
+
+                        //     int dir1 = betterDir / numDirections;
+                        //     int dir2 = betterDir % numDirections;
+                        //     int newX1 = v1.x() + dirX[dir1] * betterStep;
+                        //     int newY1 = v1.y() + dirY[dir1] * betterStep;
+                        //     int newX2 = v2.x() + dirX[dir2] * betterStep2;
+                        //     int newY2 = v2.y() + dirY[dir2] * betterStep2;
+
+                        //     F.propagateOneNodeMove(v1, newX1, newY1);
+                        //     F.propagateOneNodeMove(v2, newX2, newY2);
+                        //     model.move(v1, newX1, newY1);
+                        //     model.move(v2, newX2, newY2);
+                            
+                        //     if (betterEval.better(solutionEval)) {
+                        //         str.setLength(0);
+                        //         for (Function f : F.F) {
+                        //             str.append(f);
+                        //         }
+
+                        //         check = true;
+                        //         counter = 0;
+                        //         solutionEval = bestEval;
+                        //         model.setNodePositionsValue(solutionPositions);
+                        //     }
+                        // }
+
+                        // i1 = random.nextInt(G.getNodes().size());
+                        // do {
+                        //     i2 = random.nextInt(G.getNodes().size());
+                        // } while (i1 == i2);
+                        // node1 = G.getNodes().get(i1);
+                        // node2 = G.getNodes().get(i2);
+                        // v1 = varPos.get(node1);
+                        // v2 = varPos.get(node2);
+                        // oldX1 = v1.x();
+                        // oldY1 = v1.y();
+
+                        // int newX1 = random.nextInt(COL + 1);
+                        // int newY1 = random.nextInt(ROW + 1);
+                        // int newX2 = random.nextInt(COL + 1);
+                        // int newY2 = random.nextInt(ROW + 1);
+
+                        // F.propagateOneNodeMove(v1, newX1, newY1);
+                        // F.propagateOneNodeMove(v2, newX2, newY2);
+                        // model.move(v1, newX1, newY1);
+                        // model.move(v2, newX2, newY2);
+                        // bestEval = F.evaluation();
+                        // if (bestEval.better(solutionEval)) {
+                        //     str.setLength(0);
+                        //     for (Function f : F.F) {
+                        //         str.append(f);
+                        //     }
+
+                        //     check = true;
+                        //     counter = 0;
+                        //     solutionEval = bestEval;
+                        //     model.setNodePositionsValue(solutionPositions);
+                        // } 
+                    // }
                 }
             }
+
+            // if (false)
+            if (n > 2) { // three points move
+                // System.err.println("three points move");
+                int iteration = 0;
+                int maxIteration = 100;
+                // LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
+                LexMultiValues bestEval = F.evaluation();
+                Random random = new Random(28907329);
+                while (iteration < maxIteration) {
+                    iteration++;
+                    int i1 = random.nextInt(G.getNodes().size()), i2, i3;
+                    do {
+                        i2 = random.nextInt(G.getNodes().size());
+                    } while (i1 == i2);
+                    do {
+                        i3 = random.nextInt(G.getNodes().size());
+                    } while (i1 == i3 || i2 == i3);
+
+                    Node node1 = G.getNodes().get(i1);
+                    Node node2 = G.getNodes().get(i2);
+                    Node node3 = G.getNodes().get(i3);
+                    VarNodePosition v1 = varPos.get(node1);
+                    VarNodePosition v2 = varPos.get(node2);
+                    VarNodePosition v3 = varPos.get(node3);
+                    int oldX1 = v1.x();
+                    int oldY1 = v1.y();
+                    int oldX2 = v2.x();
+                    int oldY2 = v2.y();
+                    // int oldX3 = v3.x();
+                    // int oldY3 = v3.y();
+
+                    LexMultiValues betterEval = F.evaluation();
+                    int betterDir = -1;
+                    for (int dir = 0; dir < numDirections; dir++) {
+                        int newX1 = v1.x() + dirX[dir];
+                        int newY1 = v1.y() + dirY[dir];
+                        if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+                        for (int dir2 = 0; dir2 < numDirections; dir2++) {
+                            int newX2 = v2.x() + dirX[dir2];
+                            int newY2 = v2.y() + dirY[dir2];
+                            if (newX2 < 0 || newX2 > COL || newY2 < 0 || newY2 > ROW) continue;
+                            F.propagateOneNodeMove(v1, newX1, newY1);
+                            model.move(v1, newX1, newY1);
+
+                            F.propagateOneNodeMove(v2, newX2, newY2);
+                            model.move(v2, newX2, newY2);
+
+
+                            for (int dir3 = 0; dir3 < numDirections; dir3++) {
+                                int newX3 = v3.x() + dirX[dir3];
+                                int newY3 = v3.y() + dirY[dir3];
+                                if (newX3 < 0 || newX3 > COL || newY3 < 0 || newY3 > ROW) continue;
+
+                                LexMultiValues newEval = F.evaluateOneNodeMove(v3, newX3, newY3);
+                                if (newEval.better(betterEval)) {
+                                    betterEval = newEval;
+                                    betterDir = dir * numDirections * numDirections + 
+                                                dir2 * numDirections + dir3;
+                                } 
+                            }
+
+                            F.propagateOneNodeMove(v1, oldX1, oldY1);
+                            model.move(v1, oldX1, oldY1);
+
+                            F.propagateOneNodeMove(v2, oldX2, oldY2);
+                            model.move(v2, oldX2, oldY2);
+
+                        }
+                    }
+
+                    if (betterDir >= 0) {
+                        bestEval = betterEval;
+
+                        int dir1 = betterDir / (numDirections * numDirections);
+                        int dir2 = (betterDir / numDirections) % numDirections;
+                        int dir3 = betterDir % numDirections;
+                        int newX1 = v1.x() + dirX[dir1];
+                        int newY1 = v1.y() + dirY[dir1];
+                        int newX2 = v2.x() + dirX[dir2];
+                        int newY2 = v2.y() + dirY[dir2];
+                        int newX3 = v3.x() + dirX[dir3];
+                        int newY3 = v3.y() + dirY[dir3];
+
+                        F.propagateOneNodeMove(v1, newX1, newY1);
+                        F.propagateOneNodeMove(v2, newX2, newY2);
+                        F.propagateOneNodeMove(v3, newX3, newY3);
+                        model.move(v1, newX1, newY1);
+                        model.move(v2, newX2, newY2);
+                        model.move(v3, newX3, newY3);
+
+                        if (betterEval.better(solutionEval)) {
+                            str.setLength(0);
+                            for (Function f : F.F) {
+                                str.append(f);
+                            }
+
+                            check = true;
+                            counter = 0;
+                            solutionEval = bestEval;
+                            model.setNodePositionsValue(solutionPositions);
+                        }
+                    }
+
+                    // if (counter > 1 && random.nextInt(randomCountRange) < 1) {
+                        // betterEval = null;
+                        // betterDir = -1;
+                        // int betterStep = -1;
+                        // int betterStep2 = -1;
+                        // int betterStep3 = -1;
+                        // for (int dir = 0; dir < numDirections; dir++) {
+                        //     int step = Math.max(ROW, COL);
+                        //     if (dirX[dir] < 0) step = Math.min(step, v1.x());
+                        //     else if (dirX[dir] > 0) step = Math.min(step, COL - v1.x());
+                        //     if (dirY[dir] < 0) step = Math.min(step, v1.y());
+                        //     else if (dirY[dir] > 0) step = Math.min(step, ROW - v1.y());
+                        //     if (step < 2) continue;
+                        //     step = random.nextInt(2, step + 1);
+
+                        //     int newX1 = v1.x() + dirX[dir] * step;
+                        //     int newY1 = v1.y() + dirY[dir] * step;
+                        //     // if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+
+                        //     for (int dir2 = 0; dir2 < numDirections; dir2++) {
+                        //         int step2 = Math.max(ROW, COL);
+                        //         if (dirX[dir2] < 0) step2 = Math.min(step2, v2.x());
+                        //         else if (dirX[dir2] > 0) step2 = Math.min(step2, COL - v2.x());
+                        //         if (dirY[dir2] < 0) step2 = Math.min(step2, v2.y());
+                        //         else if (dirY[dir2] > 0) step2 = Math.min(step2, ROW - v2.y());
+                        //         if (step2 < 2) continue;
+                        //         step2 = random.nextInt(2, step2 + 1);
+
+                        //         int newX2 = v2.x() + dirX[dir2] * step2;
+                        //         int newY2 = v2.y() + dirY[dir2] * step2;
+                        //         // if (newX2 < 0 || newX2 > COL || newY 2 < 0 || newY2 > ROW) continue;
+                        //         for (int dir3 = 0; dir3 < numDirections; dir3++) {
+                        //             int step3 = Math.max(ROW, COL);
+                        //             if (dirX[dir3] < 0) step3 = Math.min(step3, v3.x());
+                        //             else if (dirX[dir3] > 0) step3 = Math.min(step3, COL - v3.x());
+                        //             if (dirY[dir3] < 0) step3 = Math.min(step3, v3.y());
+                        //             else if (dirY[dir3] > 0) step3 = Math.min(step3, ROW - v3.y());
+                        //             if (step3 < 2) continue;
+                        //             step3 = random.nextInt(2, step3 + 1);
+
+                        //             int newX3 = v3.x() + dirX[dir3] * step3;
+                        //             int newY3 = v3.y() + dirY[dir3] * step3;
+                        //             // if (newX3 < 0 || newX3 > COL || newY 2 < 0 || newY2 > ROW) continue;
+
+                        //             F.propagateOneNodeMove(v1, newX1, newY1);
+                        //             model.move(v1, newX1, newY1);
+
+                        //             F.propagateOneNodeMove(v2, newX2, newY2);
+                        //             model.move(v2, newX2, newY2);
+
+                        //             LexMultiValues newEval = F.evaluateOneNodeMove(v3, newX3, newY3);
+                        //             if (newEval.better(betterEval)) {
+                        //                 betterEval = newEval;
+                        //                 betterDir = dir * numDirections * numDirections + 
+                        //                             dir2 * numDirections + dir3;
+                        //                 betterStep = step;
+                        //                 betterStep2 = step2;
+                        //                 betterStep3 = step3;
+                        //             } 
+
+                        //             F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        //             model.move(v1, oldX1, oldY1);
+
+                        //             F.propagateOneNodeMove(v2, oldX2, oldY2);
+                        //             model.move(v2, oldX2, oldY2);
+                        //         }
+                        //     }
+                        // }
+
+                        // if (betterDir >= 0) {
+                        //     bestEval = betterEval;
+
+                        //     int dir1 = betterDir / (numDirections * numDirections);
+                        //     int dir2 = (betterDir / numDirections) % numDirections;
+                        //     int dir3 = betterDir % numDirections;
+                        //     int newX1 = v1.x() + dirX[dir1] * betterStep;
+                        //     int newY1 = v1.y() + dirY[dir1] * betterStep;
+                        //     int newX2 = v2.x() + dirX[dir2] * betterStep2;
+                        //     int newY2 = v2.y() + dirY[dir2] * betterStep2;
+                        //     int newX3 = v3.x() + dirX[dir3] * betterStep3;
+                        //     int newY3 = v3.y() + dirY[dir3] * betterStep3;
+
+                        //     F.propagateOneNodeMove(v1, newX1, newY1);
+                        //     F.propagateOneNodeMove(v2, newX2, newY2);
+                        //     F.propagateOneNodeMove(v3, newX3, newY3);
+                        //     model.move(v1, newX1, newY1);
+                        //     model.move(v2, newX2, newY2);
+                        //     model.move(v3, newX3, newY3);
+
+                        //     if (betterEval.better(solutionEval)) {
+                        //         str.setLength(0);
+                        //         for (Function f : F.F) {
+                        //             str.append(f);
+                        //         }
+
+                        //         check = true;
+                        //         counter = 0;
+                        //         solutionEval = bestEval;
+                        //         model.setNodePositionsValue(solutionPositions);
+                        //     }
+                        // }
+
+                        // i1 = random.nextInt(G.getNodes().size());
+                        // do {
+                        //     i2 = random.nextInt(G.getNodes().size());
+                        // } while (i1 == i2);
+                        // do {
+                        //     i3 = random.nextInt(G.getNodes().size());
+                        // } while (i1 == i3 || i2 == i3);
+                        // node1 = G.getNodes().get(i1);
+                        // node2 = G.getNodes().get(i2);
+                        // node3 = G.getNodes().get(i3);
+                        // v1 = varPos.get(node1);
+                        // v2 = varPos.get(node2);
+                        // v3 = varPos.get(node3);
+                        // oldX1 = v1.x();
+                        // oldY1 = v1.y();
+                        // oldX2 = v2.x();
+                        // oldY2 = v2.y();
+                        // int newX1 = random.nextInt(COL + 1);
+                        // int newY1 = random.nextInt(ROW + 1);
+                        // int newX2 = random.nextInt(COL + 1);
+                        // int newY2 = random.nextInt(ROW + 1);
+                        // int newX3 = random.nextInt(COL + 1);
+                        // int newY3 = random.nextInt(ROW + 1);
+                        // F.propagateOneNodeMove(v1, newX1, newY1);
+                        // F.propagateOneNodeMove(v2, newX2, newY2);
+                        // F.propagateOneNodeMove(v3, newX3, newY3);
+                        // model.move(v1, newX1, newY1);
+                        // model.move(v2, newX2, newY2);
+                        // model.move(v3, newX3, newY3);
+
+                        // bestEval = F.evaluation();
+                        // if (bestEval.better(solutionEval)) {
+                        //     str.setLength(0);
+                        //     for (Function f : F.F) {
+                        //         str.append(f);
+                        //     }
+
+                        //     check = true;
+                        //     counter = 0;
+                        //     solutionEval = bestEval;
+                        //     model.setNodePositionsValue(solutionPositions);
+                        // }
+                    // }
+                }
+            }
+
+            // if (fslse)
+            if (n > 3) { // four points move
+                // System.err.println("four points move");
+                int iteration = 0;
+                int maxIteration = 40;
+                LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
+                Random random = new Random(78934081);
+                while (iteration < maxIteration) {
+                    iteration++;
+                    int i1 = random.nextInt(G.getNodes().size()), i2, i3, i4;
+                    do {
+                        i2 = random.nextInt(G.getNodes().size());
+                    } while (i1 == i2);
+                    do {
+                        i3 = random.nextInt(G.getNodes().size());
+                    } while (i1 == i3 || i2 == i3);
+                    do {
+                        i4 = random.nextInt(G.getNodes().size());
+                    } while (i1 == i4 || i2 == i4 || i3 == i4);
+
+                    Node node1 = G.getNodes().get(i1);
+                    Node node2 = G.getNodes().get(i2);
+                    Node node3 = G.getNodes().get(i3);
+                    Node node4 = G.getNodes().get(i4);
+                    VarNodePosition v1 = varPos.get(node1);
+                    VarNodePosition v2 = varPos.get(node2);
+                    VarNodePosition v3 = varPos.get(node3);
+                    VarNodePosition v4 = varPos.get(node4);
+                    int oldX1 = v1.x();
+                    int oldY1 = v1.y();
+                    int oldX2 = v2.x();
+                    int oldY2 = v2.y();
+                    int oldX3 = v3.x();
+                    int oldY3 = v3.y();
+                    // int oldX4 = v4.x();
+                    // int oldY4 = v4.y();
+
+                    LexMultiValues betterEval = F.evaluation();
+                    int betterDir = -1;
+                    for (int dir = 0; dir < numDirections / 2; dir++) {
+                        int newX1 = v1.x() + dirX[dir];
+                        int newY1 = v1.y() + dirY[dir];
+                        if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+                        for (int dir2 = 0; dir2 < numDirections / 2; dir2++) {
+                            int newX2 = v2.x() + dirX[dir2];
+                            int newY2 = v2.y() + dirY[dir2];
+                            if (newX2 < 0 || newX2 > COL || newY2 < 0 || newY2 > ROW) continue;
+                            for (int dir3 = 0; dir3 < numDirections / 2; dir3++) {
+                                int newX3 = v3.x() + dirX[dir3];
+                                int newY3 = v3.y() + dirY[dir3];
+                                if (newX3 < 0 || newX3 > COL || newY3 < 0 || newY3 > ROW) continue;
+
+                                F.propagateOneNodeMove(v1, newX1, newY1);
+                                model.move(v1, newX1, newY1);
+
+                                F.propagateOneNodeMove(v2, newX2, newY2);
+                                model.move(v2, newX2, newY2);
+
+                                F.propagateOneNodeMove(v3, newX3, newY3);
+                                model.move(v3, newX3, newY3);
+
+                                for (int dir4 = 0; dir4 < numDirections; dir4++) {
+                                    int newX4 = v4.x() + dirX[dir4];
+                                    int newY4 = v4.y() + dirY[dir4];
+                                    if (newX4 < 0 || newX4 > COL || newY4 < 0 || newY4 > ROW) continue;
+
+
+                                    LexMultiValues newEval = F.evaluateOneNodeMove(v4, newX4, newY4);
+                                    if (newEval.better(betterEval)) {
+                                        betterEval = newEval;
+                                        betterDir = dir * numDirections * numDirections * numDirections + 
+                                                    dir2 * numDirections * numDirections + dir3 * numDirections + dir4;
+                                    }
+                                }
+                                F.propagateOneNodeMove(v1, oldX1, oldY1);
+                                model.move(v1, oldX1, oldY1);
+                                F.propagateOneNodeMove(v2, oldX2, oldY2);
+                                model.move(v2, oldX2, oldY2);
+                                F.propagateOneNodeMove(v3, oldX3, oldY3);
+                                model.move(v3, oldX3, oldY3);
+
+                            }
+                        }
+                    }
+
+                    if (betterDir >= 0) {
+                        bestEval = betterEval;
+
+                        int dir1 = betterDir / (numDirections * numDirections * numDirections);
+                        int dir2 = (betterDir / (numDirections * numDirections)) % numDirections;
+                        int dir3 = (betterDir / numDirections) % numDirections;
+                        int dir4 = betterDir % numDirections;
+                        int newX1 = v1.x() + dirX[dir1];
+                        int newY1 = v1.y() + dirY[dir1];
+                        int newX2 = v2.x() + dirX[dir2];
+                        int newY2 = v2.y() + dirY[dir2];
+                        int newX3 = v3.x() + dirX[dir3];
+                        int newY3 = v3.y() + dirY[dir3];
+                        int newX4 = v4.x() + dirX[dir4];
+                        int newY4 = v4.y() + dirY[dir4];
+
+                        F.propagateOneNodeMove(v1, newX1, newY1);
+                        F.propagateOneNodeMove(v2, newX2, newY2);
+                        F.propagateOneNodeMove(v3, newX3, newY3);
+                        F.propagateOneNodeMove(v4, newX4, newY4);
+                        model.move(v1, newX1, newY1);
+                        model.move(v2, newX2, newY2);
+                        model.move(v3, newX3, newY3);
+                        model.move(v4, newX4, newY4);
+
+                        if (betterEval.better(solutionEval)) {
+                            str.setLength(0);
+                            for (Function f : F.F) {
+                                str.append(f);
+                            }
+
+                            check = true;
+                            counter = 0;
+                            solutionEval = bestEval;
+                            model.setNodePositionsValue(solutionPositions);
+                        }
+                    }
+
+                    // if (counter > 1 && random.nextInt(randomCountRange) < 1) {
+                        // betterEval = null;
+                        // betterDir = -1;
+                        // int betterStep = -1;
+                        // int betterStep2 = -1;
+                        // int betterStep3 = -1;
+                        // int betterStep4 = -1;
+                        // for (int dir = 0; dir < numDirections / 2; dir++) {
+                        //     int step = Math.max(ROW, COL);
+                        //     if (dirX[dir] < 0) step = Math.min(step, v1.x());
+                        //     else if (dirX[dir] > 0) step = Math.min(step, COL - v1.x());
+                        //     if (dirY[dir] < 0) step = Math.min(step, v1.y());
+                        //     else if (dirY[dir] > 0) step = Math.min(step, ROW - v1.y());
+                        //     if (step < 2) continue;
+                        //     step = random.nextInt(2, step + 1);
+
+                        //     int newX1 = v1.x() + dirX[dir] * step;
+                        //     int newY1 = v1.y() + dirY[dir] * step;
+                        //     // if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+
+                        //     for (int dir2 = 0; dir2 < numDirections / 2; dir2++) {
+                        //         int step2 = Math.max(ROW, COL);
+                        //         if (dirX[dir2] < 0) step2 = Math.min(step2, v2.x());
+                        //         else if (dirX[dir2] > 0) step2 = Math.min(step2, COL - v2.x());
+                        //         if (dirY[dir2] < 0) step2 = Math.min(step2, v2.y());
+                        //         else if (dirY[dir2] > 0) step2 = Math.min(step2, ROW - v2.y());
+                        //         if (step2 < 2) continue;
+                        //         step2 = random.nextInt(2, step2 + 1);
+
+                        //         int newX2 = v2.x() + dirX[dir2] * step2;
+                        //         int newY2 = v2.y() + dirY[dir2] * step2;
+                        //         // if (newX2 < 0 || newX2 > COL || newY2 < 0 || newY2 > ROW) continue;
+                        //         for (int dir3 = 0; dir3 < numDirections / 2; dir3++) {
+                        //             int step3 = Math.max(ROW, COL);
+                        //             if (dirX[dir3] < 0) step3 = Math.min(step3, v3.x());
+                        //             else if (dirX[dir3] > 0) step3 = Math.min(step3, COL - v3.x());
+                        //             if (dirY[dir3] < 0) step3 = Math.min(step3, v3.y());
+                        //             else if (dirY[dir3] > 0) step3 = Math.min(step3, ROW - v3.y());
+                        //             if (step3 < 2) continue;
+                        //             step3 = random.nextInt(2, step3 + 1);
+
+                        //             int newX3 = v3.x() + dirX[dir3] * step3;
+                        //             int newY3 = v3.y() + dirY[dir3] * step3;
+                        //             // if (newX3 < 0 || newX3 > COL || newY 2 < 0 || newY2 > ROW) continue;
+
+                        //             F.propagateOneNodeMove(v1, newX1, newY1);
+                        //             model.move(v1, newX1, newY1);
+                        //             F.propagateOneNodeMove(v2, newX2, newY2);
+                        //             model.move(v2, newX2, newY2);
+                        //             F.propagateOneNodeMove(v3, newX3, newY3);
+                        //             model.move(v3, newX3, newY3);
+
+                        //             for (int dir4 = 0; dir4 < numDirections / 2; dir4++) {
+                        //                 int step4 = Math.max(ROW, COL);
+                        //                 if (dirX[dir4] < 0) step4 = Math.min(step4, v4.x());
+                        //                 else if (dirX[dir4] > 0) step4 = Math.min(step4, COL - v4.x());
+                        //                 if (dirY[dir4] < 0) step4 = Math.min(step4, v4.y());
+                        //                 else if (dirY[dir4] > 0) step4 = Math.min(step4, ROW - v4.y());
+                        //                 if (step4 < 2) continue;
+                        //                 step4 = random.nextInt(2, step4 + 1);
+
+                        //                 int newX4 = v4.x() + dirX[dir4] * step4;
+                        //                 int newY4 = v4.y() + dirY[dir4] * step4;
+                        //                 // if (newX4 < 0 || newX4 > COL || newY 2 < 0 || newY2 > ROW) continue;
+
+                        //                 LexMultiValues newEval = F.evaluateOneNodeMove(v4, newX4, newY4);
+                        //                 if (newEval.better(betterEval)) {
+                        //                     betterEval = newEval;
+                        //                     betterDir = dir * numDirections * numDirections * numDirections + 
+                        //                                 dir2 * numDirections * numDirections + dir3 * numDirections + dir4;
+                        //                     betterStep = step;
+                        //                     betterStep2 = step2;
+                        //                     betterStep3 = step3;
+                        //                     betterStep4 = step4;
+                        //                 }
+                        //             }
+                        //             F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        //             model.move(v1, oldX1, oldY1);
+                        //             F.propagateOneNodeMove(v2, oldX2, oldY2);
+                        //             model.move(v2, oldX2, oldY2);
+                        //             F.propagateOneNodeMove(v3, oldX3, oldY3);
+                        //             model.move(v3, oldX3, oldY3);
+
+                        //         }
+                        //     }
+                        // }
+
+                        // if (betterDir >= 0) {
+                        //     bestEval = betterEval;
+
+                        //     int dir1 = betterDir / (numDirections * numDirections * numDirections);
+                        //     int dir2 = (betterDir / (numDirections * numDirections)) % numDirections;
+                        //     int dir3 = (betterDir / numDirections) % numDirections;
+                        //     int dir4 = betterDir % numDirections;
+                        //     int newX1 = v1.x() + dirX[dir1] * betterStep;
+                        //     int newY1 = v1.y() + dirY[dir1] * betterStep;
+                        //     int newX2 = v2.x() + dirX[dir2] * betterStep2;
+                        //     int newY2 = v2.y() + dirY[dir2] * betterStep2;
+                        //     int newX3 = v3.x() + dirX[dir3] * betterStep3;
+                        //     int newY3 = v3.y() + dirY[dir3] * betterStep3;
+                        //     int newX4 = v4.x() + dirX[dir4] * betterStep4;
+                        //     int newY4 = v4.y() + dirY[dir4] * betterStep4;
+
+                        //     F.propagateOneNodeMove(v1, newX1, newY1);
+                        //     F.propagateOneNodeMove(v2, newX2, newY2);
+                        //     F.propagateOneNodeMove(v3, newX3, newY3);
+                        //     F.propagateOneNodeMove(v4, newX4, newY4);
+                        //     model.move(v1, newX1, newY1);
+                        //     model.move(v2, newX2, newY2);
+                        //     model.move(v3, newX3, newY3);
+                        //     model.move(v4, newX4, newY4);
+
+                        //     if (betterEval.better(solutionEval)) {
+                        //         str.setLength(0);
+                        //         for (Function f : F.F) {
+                        //             str.append(f);
+                        //         }
+
+                        //         check = true;
+                        //         counter = 0;
+                        //         solutionEval = bestEval;
+                        //         model.setNodePositionsValue(solutionPositions);
+                        //     }
+                        // }
+
+                        // i1 = random.nextInt(G.getNodes().size());
+                        // do {
+                        //     i2 = random.nextInt(G.getNodes().size());
+                        // } while (i1 == i2);
+                        // do {
+                        //     i3 = random.nextInt(G.getNodes().size());
+                        // } while (i1 == i3 || i2 == i3);
+                        // do {
+                        //     i4 = random.nextInt(G.getNodes().size());
+                        // } while (i1 == i4 || i2 == i4 || i3 == i4);
+
+                        // node1 = G.getNodes().get(i1);
+                        // node2 = G.getNodes().get(i2);
+                        // node3 = G.getNodes().get(i3);
+                        // node4 = G.getNodes().get(i4);
+                        // v1 = varPos.get(node1);
+                        // v2 = varPos.get(node2);
+                        // v3 = varPos.get(node3);
+                        // v4 = varPos.get(node4);
+                        // oldX1 = v1.x();
+                        // oldY1 = v1.y();
+                        // oldX2 = v2.x();
+                        // oldY2 = v2.y();
+                        // oldX3 = v3.x();
+                        // oldY3 = v3.y();
+
+                        // int newX1 = random.nextInt(COL + 1);
+                        // int newY1 = random.nextInt(ROW + 1);
+                        // int newX2 = random.nextInt(COL + 1);
+                        // int newY2 = random.nextInt(ROW + 1);
+                        // int newX3 = random.nextInt(COL + 1);
+                        // int newY3 = random.nextInt(ROW + 1);
+                        // int newX4 = random.nextInt(COL + 1);
+                        // int newY4 = random.nextInt(ROW + 1);
+                        // F.propagateOneNodeMove(v1, newX1, newY1);
+                        // F.propagateOneNodeMove(v2, newX2, newY2);
+                        // F.propagateOneNodeMove(v3, newX3, newY3);
+                        // F.propagateOneNodeMove(v4, newX4, newY4);
+                        // model.move(v1, newX1, newY1);
+                        // model.move(v2, newX2, newY2);
+                        // model.move(v3, newX3, newY3);
+                        // model.move(v4, newX4, newY4);
+                        // bestEval = F.evaluation();
+                        // if (bestEval.better(solutionEval)) {
+                        //     str.setLength(0);
+                        //     for (Function f : F.F) {
+                        //         str.append(f);
+                        //     }
+
+                        //     check = true;
+                        //     counter = 0;
+                        //     solutionEval = bestEval;
+                        //     model.setNodePositionsValue(solutionPositions);
+                        // }
+                    // }
+                    
+                }
+            }
+
 
 //            if (false)
             if (n > 1) { // two points move
                 // System.err.println("two points move");
-                int iteration = 0, maxIteration = 30000;
+                int iteration = 0, maxIteration = 500;
                 final double acceptWorseRate = 0.0005;
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 Random random = new Random(8234091);
@@ -2741,7 +3555,7 @@ public class Main {
             if (n > 2) { // three points move
                 // System.err.println("three points move");
                 int iteration = 0;
-                int maxIteration = 10000;
+                int maxIteration = 100;
                 double acceptWorseRate = 0.0005;
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 Random random = new Random(289070329);
@@ -2823,7 +3637,7 @@ public class Main {
             if (n > 3) { // four points move
                 // System.err.println("four points move");
                 int iteration = 0;
-                int maxIteration = 10000;
+                int maxIteration = 50;
                 double acceptWorseRate = 0.0005;
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 Random random = new Random(278934081);
@@ -2933,46 +3747,47 @@ public class Main {
         //     }
         }
 
-//         for (Node node : G.getNodes()) {
-//             VarNodePosition v = varPos.get(node);
-//             System.err.printf("%d: (%d, %d),\n", node.id, v.x(), v.y());
-//         }
-        // System.err.printf("%s %s\n", str, solutionEval);
-        // for (NodePosition pos : solutionPositions) {
-        //     System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
-        // }
+        check = true;
+        counter = 0;
+        // if (false)
+        System.err.println("end of first phase");
+        int iter = 0;
+        while ((iter++ < 150) && (check || counter++ < maxCounter)) {
+        }
+        System.err.printf("%s %s\n", str, solutionEval);
         for (NodePosition pos : solutionPositions) {
-            // System.out.printf("%d %d %d\n", pos.id(), pos.x(), pos.y());
-            // io.printf("%d %d\n", pos.x(), pos.y());
-            io.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
+            System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
         }
 
-//        {
-////            for (Node node : G.getNodes()) {
-//            for (int i = 0; i < n; i++) {
-//                VarNodePosition pos = varPos.get(nodes.get(i));
-//                NodePosition pos1 = solutionPositions.get(i);
-//                pos.assign(pos1.x(), pos1.y());
-//            }
-//            NumberIntersectionEdges f3 = new NumberIntersectionEdges(G, varPos);// to be minimized
-//            MinAngle f2 = new MinAngle(G, varPos);// to be maximized
-//            MinDistanceEdge f1 = new MinDistanceEdge(G, varPos);// to be maximized
-//            MinDistanceNodeEdge f4 = new MinDistanceNodeEdge(G, varPos);// to be maximized
-//
-//            Function fObj = new ObjectiveFunction(f3, f2, f1, f4, 100.0, 200.0, 1.0, 4);
-//            System.err.println(fObj);
-//        }
+        for (NodePosition pos : solutionPositions) {
+            io.printf("%d: (%d, %d), ", pos.id(), pos.x(), pos.y());
+        }
+        io.println();
+        {
+            for (int i = 0; i < n; i++) {
+                VarNodePosition pos = varPos.get(nodes.get(i));
+                NodePosition pos1 = solutionPositions.get(i);
+                pos.assign(pos1.x(), pos1.y());
+            }
+            NumberIntersectionEdges f3 = new NumberIntersectionEdges(G, varPos);// to be minimized
+            MinAngle f2 = new MinAngle(G, varPos);// to be maximized
+            MinDistanceEdge f1 = new MinDistanceEdge(G, varPos);// to be maximized
+            MinDistanceNodeEdge f4 = new MinDistanceNodeEdge(G, varPos);// to be maximized
+            Function fObj = new ObjectiveFunction(f3, f2, f1, f4, 100.0, 200.0, 1.0, 4);
+            System.err.println(fObj);
+        }
+
         io.close();
     }
     public static void main(String[] args){
-        // long startTime = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         test1();
         // try {
         //     test2();
         // } catch (IOException e) {
         //     e.printStackTrace();
         // }
-        // long endTime = System.currentTimeMillis();
-        // System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
+        long endTime = System.currentTimeMillis();
+        System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
     }
 }
