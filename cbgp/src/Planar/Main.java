@@ -2502,7 +2502,7 @@ public class Main {
     static final Integer[] dirX = {0, 1, 0, -1, 1, 1, -1, -1};
     static final Integer[] dirY = {1, 0, -1, 0, 1, -1, -1, 1};
 
-    public static void test2() throws IOException {
+    public static void planarGen() throws IOException {
         List<Integer> N = List.of(10, 20, 50, 100, 200);
         Random random = new Random();
 
@@ -2528,8 +2528,116 @@ public class Main {
         }
     }
 
-    public static void test1(){
-        Kattio io = new Kattio();
+    public static void completeGen() throws IOException {
+        List<Integer> N = List.of(5, 6);
+
+        int start = 15;
+        for (int c = 0; c < N.size(); c++) {
+            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
+
+            int n = N.get(c);
+            int m = n * (n - 1) >> 1;
+            io.printf("%d %d\n%d %d\n", n, n, n, m);
+            for (int i = 0; i < n; i++) {
+                for (int j = i + 1; j < n; j++) {
+                    io.printf("%d %d\n", i + 1, j + 1);
+                }
+            }
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", c, n, n, n, m);
+        }
+    }
+
+    public static void circleGen() throws IOException {
+        List<Integer> N = List.of(10, 20);
+
+        int start = 7;
+        for (int c = 0; c < N.size(); c++) {
+            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
+
+            int n = N.get(c);
+            int m = n;
+            io.printf("%d %d\n%d %d\n", n, n, n, m);
+            for (int i = 0; i < n; i++) {
+                io.printf("%d %d\n", i + 1, (i + 1) % n + 1);
+            }
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", c, n, n, n, m);
+        }
+    }
+
+    public static void completeBipartiteGen() throws IOException {
+        List<Integer> N = List.of(6, 8);
+
+        int start = 11;
+        for (int c = 0; c < N.size(); c++) {
+            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
+
+            int n = N.get(c);
+            int m = n * n >> 2;
+            io.printf("%d %d\n%d %d\n", n, n, n, m);
+            for (int i = 0; i < (n / 2); i++) {
+                for (int j = n / 2; j < n; j++) {
+                    io.printf("%d %d\n", i + 1, j + 1);
+                }
+            }
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", c, n, n, n, m);
+        }
+    }
+
+    public static void wheelGen() throws IOException {
+        List<Integer> N = List.of(6,11);
+
+        int start = 17;
+        for (int c = 0; c < N.size(); c++) {
+            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
+
+            int n = N.get(c);
+            int m = n - 1 << 1;
+            io.printf("%d %d\n%d %d\n", n, n, n, m);
+            for (int i = 1; i < n; i++) {
+                io.printf("%d %d\n", 1, i + 1);
+            }
+            for (int i = 1; i < n - 1; i++) {
+                io.printf("%d %d\n", i + 1, i + 2);
+            }
+            io.printf("%d %d\n", n, 2);
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", start + c, n, n, n, m);
+        }
+    }
+
+    public static void ncubesGen() throws IOException {
+        List<Integer> N = List.of(4,5,3);
+
+        int start = 19;
+        for (int c = 0; c < N.size(); c++) {
+            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
+
+            int n = 1 << N.get(c);
+            int m = N.get(c) << (N.get(c) - 1);
+            io.printf("%d %d\n%d %d\n", n, n, n, m);
+            for (int i = 0; i < n; i++) {
+                // for (int j = 0; j < i; j++) {
+                //     if (Integer.bitCount(i ^ j) == 1) {
+                //         io.printf("%d %d\n", i + 1, j + 1);
+                //     }
+                // }
+                for (int j = 0; j < N.get(c); j++) {
+                    if ((i >> j & 1) == 1) {
+                        io.printf("%d %d\n", i + 1, (i ^ 1 << j) + 1);
+                    }
+                }
+            }
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", start + c, n, n, n, m);
+        }
+    }
+
+
+    public static void test1() throws IOException {
+        Kattio io = new Kattio("tests/20.in");
         // int ROW = 20;
         // int COL = 20; // the graph is presented on a grid ROW x COL
         int ROW = io.nextInt();
@@ -2602,7 +2710,6 @@ public class Main {
         double centerX = COL / 2.0;
         double centerY = ROW / 2.0;
         Point2D center = new Point2D(centerX, centerY);
-
         boolean isFirst = true;
         for (int i = 0, j = 0; i < n; i++) {
             if (radius.get(i).size() > 0) {
@@ -2647,8 +2754,17 @@ public class Main {
         MinDistanceNodeEdge F4 = new MinDistanceNodeEdge(G,varPos);// to be maximized
 
         LexMultiFunctions F = new LexMultiFunctions();
-        Function FObj = new ObjectiveFunction(F3, F2, F1, F4, 
+        Function FObj; 
+        if (n_edges <= n * 3 - 6) {
+            FObj = new ObjectiveFunction(F3, F2, F1, F4, 
                                 100000.0, 400.0, 20. / Math.sqrt((ROW * ROW + COL * COL) / 2.), 80. / Math.sqrt((ROW * ROW + COL * COL) / 2.));
+        }
+        else {
+            FObj = new ObjectiveFunction(F3, F2, F1, F4, 
+                                10.0, 40000.0, 20. / Math.sqrt((ROW * ROW + COL * COL) / 2.), 80. / Math.sqrt((ROW * ROW + COL * COL) / 2.));
+            // FObj = new ObjectiveFunction(F3, F2, F1, F4, 
+            //                     0, 0, 1, 0);
+        }
         model.addFunction(FObj);
         F.add(FObj);
 //        F.add(F3); F.add(F2); F.add(F1);
@@ -2661,7 +2777,7 @@ public class Main {
         //     System.err.printf("%d: (%d, %d)\n", node.id, v.x(), v.y());
         // }
 
-        LexMultiValues solutionEval = null;
+        LexMultiValues solutionEval = F.evaluation();
         List<NodePosition> solutionPositions = new ArrayList<>();
         for (Node node : G.getNodes()) {
             VarNodePosition v = varPos.get(node);
@@ -2672,7 +2788,11 @@ public class Main {
         final int maxCounter = 3;
         int counter = 0;
         StringBuilder str = new StringBuilder();
-        // if (false)
+        for (Function f : F.F) {
+            str.append(f);
+        }
+        int L = n * n_edges;
+        int MAX = 5000000;
         while (check || counter++ < maxCounter) {
             check = false;
             { // simple hill climbing
@@ -2745,7 +2865,7 @@ public class Main {
             // if (false)
             if (n > 1) { // two points move
                 // System.err.println("two points move");
-                int iteration = 0, maxIteration = 500;
+                int iteration = 0, maxIteration = Math.min(MAX / L, 500);
                 // LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 LexMultiValues bestEval = F.evaluation();
                 Random random = new Random(82334091);
@@ -2802,8 +2922,8 @@ public class Main {
                         int newY2 = v2.y() + dirY[dir2];
 
                         F.propagateOneNodeMove(v1, newX1, newY1);
-                        F.propagateOneNodeMove(v2, newX2, newY2);
                         model.move(v1, newX1, newY1);
+                        F.propagateOneNodeMove(v2, newX2, newY2);
                         model.move(v2, newX2, newY2);
 
                         if (betterEval.better(solutionEval)) {
@@ -2814,7 +2934,7 @@ public class Main {
 
                             check = true;
                             counter = 0;
-                            solutionEval = bestEval;
+                            solutionEval = betterEval;
                             model.setNodePositionsValue(solutionPositions);
                         }
                     }
@@ -2933,7 +3053,7 @@ public class Main {
             if (n > 2) { // three points move
                 // System.err.println("three points move");
                 int iteration = 0;
-                int maxIteration = 100;
+                int maxIteration = Math.min(MAX / 5 / L, 100);
                 // LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 LexMultiValues bestEval = F.evaluation();
                 Random random = new Random(28907329);
@@ -2966,13 +3086,13 @@ public class Main {
                         int newX1 = v1.x() + dirX[dir];
                         int newY1 = v1.y() + dirY[dir];
                         if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+                        F.propagateOneNodeMove(v1, newX1, newY1);
+                        model.move(v1, newX1, newY1);
+
                         for (int dir2 = 0; dir2 < numDirections; dir2++) {
                             int newX2 = v2.x() + dirX[dir2];
                             int newY2 = v2.y() + dirY[dir2];
                             if (newX2 < 0 || newX2 > COL || newY2 < 0 || newY2 > ROW) continue;
-                            F.propagateOneNodeMove(v1, newX1, newY1);
-                            model.move(v1, newX1, newY1);
-
                             F.propagateOneNodeMove(v2, newX2, newY2);
                             model.move(v2, newX2, newY2);
 
@@ -2989,14 +3109,13 @@ public class Main {
                                                 dir2 * numDirections + dir3;
                                 } 
                             }
-
-                            F.propagateOneNodeMove(v1, oldX1, oldY1);
-                            model.move(v1, oldX1, oldY1);
-
                             F.propagateOneNodeMove(v2, oldX2, oldY2);
                             model.move(v2, oldX2, oldY2);
 
                         }
+                        F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        model.move(v1, oldX1, oldY1);
+
                     }
 
                     if (betterDir >= 0) {
@@ -3013,10 +3132,10 @@ public class Main {
                         int newY3 = v3.y() + dirY[dir3];
 
                         F.propagateOneNodeMove(v1, newX1, newY1);
-                        F.propagateOneNodeMove(v2, newX2, newY2);
-                        F.propagateOneNodeMove(v3, newX3, newY3);
                         model.move(v1, newX1, newY1);
+                        F.propagateOneNodeMove(v2, newX2, newY2);
                         model.move(v2, newX2, newY2);
+                        F.propagateOneNodeMove(v3, newX3, newY3);
                         model.move(v3, newX3, newY3);
 
                         if (betterEval.better(solutionEval)) {
@@ -3027,7 +3146,7 @@ public class Main {
 
                             check = true;
                             counter = 0;
-                            solutionEval = bestEval;
+                            solutionEval = betterEval;
                             model.setNodePositionsValue(solutionPositions);
                         }
                     }
@@ -3180,11 +3299,11 @@ public class Main {
                 }
             }
 
-            // if (fslse)
+            // if (false)
             if (n > 3) { // four points move
                 // System.err.println("four points move");
                 int iteration = 0;
-                int maxIteration = 40;
+                int maxIteration = Math.min(MAX / 50 * 4 / L, 40);
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 Random random = new Random(78934081);
                 while (iteration < maxIteration) {
@@ -3217,31 +3336,31 @@ public class Main {
                     // int oldX4 = v4.x();
                     // int oldY4 = v4.y();
 
-                    LexMultiValues betterEval = F.evaluation();
+                    // LexMultiValues betterEval = F.evaluation();
+                    LexMultiValues betterEval = bestEval;
                     int betterDir = -1;
                     for (int dir = 0; dir < numDirections / 2; dir++) {
                         int newX1 = v1.x() + dirX[dir];
                         int newY1 = v1.y() + dirY[dir];
                         if (newX1 < 0 || newX1 > COL || newY1 < 0 || newY1 > ROW) continue;
+                        F.propagateOneNodeMove(v1, newX1, newY1);
+                        model.move(v1, newX1, newY1);
                         for (int dir2 = 0; dir2 < numDirections / 2; dir2++) {
                             int newX2 = v2.x() + dirX[dir2];
                             int newY2 = v2.y() + dirY[dir2];
                             if (newX2 < 0 || newX2 > COL || newY2 < 0 || newY2 > ROW) continue;
+                            F.propagateOneNodeMove(v2, newX2, newY2);
+                            model.move(v2, newX2, newY2);
                             for (int dir3 = 0; dir3 < numDirections / 2; dir3++) {
                                 int newX3 = v3.x() + dirX[dir3];
                                 int newY3 = v3.y() + dirY[dir3];
                                 if (newX3 < 0 || newX3 > COL || newY3 < 0 || newY3 > ROW) continue;
 
-                                F.propagateOneNodeMove(v1, newX1, newY1);
-                                model.move(v1, newX1, newY1);
-
-                                F.propagateOneNodeMove(v2, newX2, newY2);
-                                model.move(v2, newX2, newY2);
-
                                 F.propagateOneNodeMove(v3, newX3, newY3);
                                 model.move(v3, newX3, newY3);
 
-                                for (int dir4 = 0; dir4 < numDirections; dir4++) {
+
+                                for (int dir4 = 0; dir4 < numDirections / 2; dir4++) {
                                     int newX4 = v4.x() + dirX[dir4];
                                     int newY4 = v4.y() + dirY[dir4];
                                     if (newX4 < 0 || newX4 > COL || newY4 < 0 || newY4 > ROW) continue;
@@ -3254,15 +3373,14 @@ public class Main {
                                                     dir2 * numDirections * numDirections + dir3 * numDirections + dir4;
                                     }
                                 }
-                                F.propagateOneNodeMove(v1, oldX1, oldY1);
-                                model.move(v1, oldX1, oldY1);
-                                F.propagateOneNodeMove(v2, oldX2, oldY2);
-                                model.move(v2, oldX2, oldY2);
                                 F.propagateOneNodeMove(v3, oldX3, oldY3);
                                 model.move(v3, oldX3, oldY3);
-
                             }
+                            F.propagateOneNodeMove(v2, oldX2, oldY2);
+                            model.move(v2, oldX2, oldY2);
                         }
+                        F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        model.move(v1, oldX1, oldY1);
                     }
 
                     if (betterDir >= 0) {
@@ -3282,15 +3400,15 @@ public class Main {
                         int newY4 = v4.y() + dirY[dir4];
 
                         F.propagateOneNodeMove(v1, newX1, newY1);
-                        F.propagateOneNodeMove(v2, newX2, newY2);
-                        F.propagateOneNodeMove(v3, newX3, newY3);
-                        F.propagateOneNodeMove(v4, newX4, newY4);
                         model.move(v1, newX1, newY1);
+                        F.propagateOneNodeMove(v2, newX2, newY2);
                         model.move(v2, newX2, newY2);
+                        F.propagateOneNodeMove(v3, newX3, newY3);
                         model.move(v3, newX3, newY3);
+                        F.propagateOneNodeMove(v4, newX4, newY4);
                         model.move(v4, newX4, newY4);
 
-                        if (betterEval.better(solutionEval)) {
+                        if (bestEval.better(solutionEval)) {
                             str.setLength(0);
                             for (Function f : F.F) {
                                 str.append(f);
@@ -3491,8 +3609,8 @@ public class Main {
 //            if (false)
             if (n > 1) { // two points move
                 // System.err.println("two points move");
-                int iteration = 0, maxIteration = 500;
-                final double acceptWorseRate = 0.0005;
+                int iteration = 0, maxIteration = Math.min(500, MAX / L);
+                final double acceptWorseRate = 0.005;
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 Random random = new Random(8234091);
                 while (iteration < maxIteration) {
@@ -3555,8 +3673,8 @@ public class Main {
             if (n > 2) { // three points move
                 // System.err.println("three points move");
                 int iteration = 0;
-                int maxIteration = 100;
-                double acceptWorseRate = 0.0005;
+                int maxIteration = Math.min(100, MAX / 5 / L);
+                double acceptWorseRate = 0.01;
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 Random random = new Random(289070329);
                 while (iteration < maxIteration) {
@@ -3590,11 +3708,11 @@ public class Main {
                     int newY3 = random.nextInt(ROW + 1);
 
                     F.propagateOneNodeMove(v1, newX1, newY1);
+                    model.move(v1, newX1, newY1);
                     F.propagateOneNodeMove(v2, newX2, newY2);
 //                        F.propagateOneNodeMove(v3, newX3, newY3);
 
 //                        v1.assign(newX1, newY1);
-                    model.move(v1, newX1, newY1);
                     // v2.assign(newX2, newY2);
                     model.move(v2, newX2, newY2);
                     // v3.assign(newX3, newY3);
@@ -3618,11 +3736,11 @@ public class Main {
                         }
                     } else {
                         F.propagateOneNodeMove(v1, oldX1, oldY1);
+                        model.move(v1, oldX1, oldY1);
                         F.propagateOneNodeMove(v2, oldX2, oldY2);
 //                        F.propagateOneNodeMove(v3, oldX3, oldY3);
 
                         // v1.assign(oldX1, oldY1);
-                        model.move(v1, oldX1, oldY1);
                         // v2.assign(oldX2, oldY2);
                         model.move(v2, oldX2, oldY2);
                         // v3.assign(oldX3, oldY3);
@@ -3637,8 +3755,8 @@ public class Main {
             if (n > 3) { // four points move
                 // System.err.println("four points move");
                 int iteration = 0;
-                int maxIteration = 50;
-                double acceptWorseRate = 0.0005;
+                int maxIteration = Math.min(50, MAX / 10 / L);
+                double acceptWorseRate = 0.01;
                 LexMultiValues bestEval = new LexMultiValues(List.of(FObj.evaluation()));
                 Random random = new Random(278934081);
                 while (iteration < maxIteration) {
@@ -3681,15 +3799,15 @@ public class Main {
                     int newY4 = random.nextInt(ROW + 1);
 
                     F.propagateOneNodeMove(v1, newX1, newY1);
+                    model.move(v1, newX1, newY1);
                     F.propagateOneNodeMove(v2, newX2, newY2);
+                    model.move(v2, newX2, newY2);
                     F.propagateOneNodeMove(v3, newX3, newY3);
+                    model.move(v3, newX3, newY3);
 
 //                        v1.assign(newX1, newY1);
-                    model.move(v1, newX1, newY1);
                     // v2.assign(newX2, newY2);
-                    model.move(v2, newX2, newY2);
                     // v3.assign(newX3, newY3);
-                    model.move(v3, newX3, newY3);
 
                     LexMultiValues newEval = F.evaluateOneNodeMove(v4, newX4, newY4);
                     if (newEval.better(bestEval) || random.nextDouble() < acceptWorseRate) {
@@ -3709,15 +3827,15 @@ public class Main {
                         }
                     } else {
                         F.propagateOneNodeMove(v1, oldX1, oldY1);
-                        F.propagateOneNodeMove(v2, oldX2, oldY2);
-                        F.propagateOneNodeMove(v3, oldX3, oldY3);
-
-                        // v1.assign(oldX1, oldY1);
                         model.move(v1, oldX1, oldY1);
+                        F.propagateOneNodeMove(v2, oldX2, oldY2);
                         // v2.assign(oldX2, oldY2);
                         model.move(v2, oldX2, oldY2);
-                        // v3.assign(oldX3, oldY3);
+                        F.propagateOneNodeMove(v3, oldX3, oldY3);
                         model.move(v3, oldX3, oldY3);
+
+                        // v1.assign(oldX1, oldY1);
+                        // v3.assign(oldX3, oldY3);
                     }
                 }
             }
@@ -3781,12 +3899,17 @@ public class Main {
     }
     public static void main(String[] args){
         long startTime = System.currentTimeMillis();
-        test1();
-        // try {
-        //     test2();
-        // } catch (IOException e) {
-        //     e.printStackTrace();
-        // }
+        try {
+            test1();
+            // planarGen();
+            // completeGen();
+            // circleGen();
+            // completeBipartiteGen();
+            // wheelGen();
+            // ncubesGen();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         long endTime = System.currentTimeMillis();
         System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
     }
