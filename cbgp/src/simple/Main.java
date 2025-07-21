@@ -3252,6 +3252,423 @@ class TwoRandomNeighborhood implements NeighborExplorer {
     }
 }
 
+class PQTree {
+    private int n, root, tot, top;
+    private int[] pool, type, color;
+    private List<List<Integer>> adj;
+    private List<Integer> ans;
+    private String s;
+
+    public PQTree() {}
+
+    public PQTree(int n) {
+        this.n = n;
+        root = tot = n + 1;
+        adj = new ArrayList<>(n + 2);
+        ans = new ArrayList<>();
+        for (int i = 0; i <= n + 1; i++) adj.add(new ArrayList<>());
+        for (int i = 1; i <= n; i++) adj.get(root).add(i);
+        pool = new int[n + 1];
+        type = new int[n + 1];
+        color = new int[n + 1];
+        s = "";
+    }
+
+    public void insert(String s) {
+        this.s = s;
+        dfs(root);
+        work(root);
+        while (adj.get(root).size() == 1) {
+            root = adj.get(root).get(0);
+        }
+        remove(root);
+    }
+
+    public List<Integer> getAns() {
+        dfsAns(root);
+        return ans;
+    }
+
+    private void fail() {
+
+    }
+
+    private int newNode(int y) {
+        int x = top > 0 ? pool[top--] : ++tot;
+        type[x] = y;
+        return x;
+    }
+
+    private void delete(int u) {
+        adj.get(u).clear();
+        pool[++top] = u;
+    }
+
+    private void dfs(int u) {
+        if (u > 0 && u <= n) {
+            color[u] = s.charAt(u - 1) == '1' ? 1 : 0;
+            return ;
+        }
+
+        boolean c0 = false, c1 = false;
+        for (int v : adj.get(u)) {
+            dfs(v);
+            if (color[v] != 1) c0 = true;
+            if (color[v] > 0) c1 = true;
+        }
+
+        if (c0 && c1) {
+            color[u] = 2;
+        }
+        else if (c0) {
+            color[u] = 0;
+        }
+        else if (c1) {
+            color[u] = 1;
+        }
+    }
+
+    private boolean check(List<Integer> v) {
+        int j = -1;
+        for (int i = 0; i < v.size(); i++) {
+            if (color[v.get(i)] == 2) {
+                if (j != -1) return false;
+                j = i;
+                break;
+            }
+        }
+
+        if (j == -1) {
+            for (int i = 0; i < v.size(); i++) {
+                if (color[v.get(i)] > 0) {
+                    j = i;
+                    break;
+                }
+            }
+        }
+        
+        for (int i = 0; i < j; i++) {
+            if (color[v.get(i)] > 0) {
+                return false;
+            }
+        }
+
+        for (int i = j + 1; i < v.size(); i++) {
+            if (color[v.get(i)] != 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private List<Integer> split(int u) {
+        if (color[u] == 2) {
+            List<Integer> v = new ArrayList<>();
+            v.add(u);
+            return v;
+        }
+
+        List<Integer> ng = new ArrayList<>();
+        if (type[u] == 1) {
+            if (!check(adj.get(u))) {
+                Collections.reverse(adj.get(u));
+                if (!check(adj.get(u))) {
+                    fail();
+                }
+            }
+            for (int v : adj.get(u)) {
+                if (color[u] != 2) {
+                    ng.add(v);
+                }
+                else {
+                    List<Integer> w = split(v);
+                    ng.addAll(w);
+                }
+            }
+        }
+        else {
+            List<List<Integer>> son = new ArrayList<>();
+            for (int col = 0; col < 3; col++) {
+                son.add(new ArrayList<>());
+            }
+            for (int v : adj.get(u)) {
+                son.get(color[v]).add(v);
+            }
+            if (son.get(2).size() > 1) {
+                fail();
+            }
+            if (!son.get(0).isEmpty()) {
+                int n0 = newNode(0);
+                // adj.set(n0, son.get(0));
+                adj.get(n0).addAll(son.get(0));
+                ng.add(n0);
+            }
+            if (!son.get(2).isEmpty()) {
+                List<Integer> w = split(son.get(2).get(0));
+                ng.addAll(w);
+            }
+            if (!son.get(1).isEmpty()) {
+                int n1 = newNode(1);
+                // adj.set(n1, son.get(1));
+                adj.get(n1).addAll(son.get(1));
+                ng.add(n1);
+            }
+        }
+
+        delete(u);
+        return ng;
+
+    }
+
+    private void work(int u) {
+        if (color[u] != 2) {
+            return ;
+        }
+        if (type[u] > 0) {
+            int l = (int)1e9, r = (int)-1e9;
+            for (int i = 0; i < adj.get(u).size(); i++) {
+                if (color[adj.get(u).get(i)] > 0) {
+                    l = Math.min(l, i);
+                    r = Math.max(r, i);
+                }
+            }
+
+            for (int i = l + 1; i < r; i++) {
+                if (color[adj.get(u).get(i)] != 1) {
+                    fail();
+                }
+            }
+
+            if (l == r & color[adj.get(u).get(l)] == 2) {
+                work(adj.get(u).get(l));
+                return ;
+            }
+
+            List<Integer> ng = new ArrayList<>();
+            for (int i = 0; i < l; i++) {
+                ng.add(adj.get(u).get(i));
+            }
+            List<Integer> w = split(adj.get(u).get(l));
+            ng.addAll(w);
+            for (int i = l + 1; i < r; i++) {
+                ng.add(adj.get(u).get(i));
+            }
+            if (l != r) {
+                w = split(adj.get(u).get(r));
+                Collections.reverse(w);
+                ng.addAll(w);
+            }
+            for (int i = r + 1; i < adj.get(u).size(); i++) {
+                ng.add(adj.get(u).get(i));
+            }
+            // adj.set(u, ng);
+            adj.get(u).clear();
+            adj.get(u).addAll(ng);
+            return ;
+        }
+        else {
+            List<List<Integer>> son = new ArrayList<>();
+            for (int col = 0; col < 3; col++) {
+                son.add(new ArrayList<>());
+            }
+            for (int v : adj.get(u)) {
+                son.get(color[v]).add(v);
+            }
+
+            if (son.get(1).isEmpty() && son.get(2).size() == 1) {
+                work(son.get(2).get(0));
+                return ;
+            }
+
+            adj.get(u).clear();
+            if (son.get(2).size() > 2) {
+                fail();
+            }
+
+            adj.get(u).addAll(son.get(0));
+            int n1 = newNode(1);
+            adj.get(u).add(n1);
+            if (!son.get(2).isEmpty()) {
+                List<Integer> w = split(son.get(2).get(0));
+                adj.get(n1).addAll(w);
+            }
+            if (!son.get(1).isEmpty()) {
+                int n2 = newNode(0);
+                adj.get(n1).add(n2);
+                adj.get(n2).addAll(son.get(1));
+            }
+
+            if (son.get(2).size() > 1) {
+                List<Integer> w = split(son.get(2).get(1));
+                Collections.reverse(w);
+                adj.get(n1).addAll(w);
+            }
+        }
+    }
+
+    private void remove(int u) {
+        for (int v : adj.get(u)) {
+            int tv = v;
+            while (adj.get(tv).size() == 1) {
+                int t = tv;
+                tv = adj.get(tv).get(0);
+                delete(t);
+            }
+            v = tv;
+            remove(v);
+        }
+    }
+
+    private void dfsAns(int u) {
+        if (u > 0 && u <= n) {
+            ans.add(u);
+            return ;
+        }
+        for (int v : adj.get(u)) {
+            dfsAns(v);
+        }
+    }
+}
+
+class STNumbering {
+    STNumbering() {}
+
+    int n, s, t;
+    private int[] tin, low, parent, pos, ans;
+    private boolean[] b, vis;
+    private int timer;
+    private List<List<Integer>> adj, st;
+    private int count = 0;
+
+    STNumbering(int n, int s, int t) {
+        this.n = n;
+        this.s = s;
+        this.t = t;
+        tin = new int[n + 1];
+        low = new int[n + 1];
+        parent = new int[n + 1];
+        pos = new int[n + 1];
+        b = new boolean[n + 1];
+        timer = 0;
+        ans = new int[n + 1];
+        vis = new boolean[n + 1];
+        // adj = new ArrayList<>();
+        // for (int i = 0; i <= n; i++) {
+        //     adj.add(new ArrayList<>());
+        // }
+        st = new ArrayList<>();
+        for (int i = 0; i <= n; i++) {
+            st.add(new ArrayList<>());
+        }
+    }
+
+    // STNumbering(int n, int s, int t, List<List<Integer>> adj) {
+    //     // this.n = n;
+    //     // this.s = s;
+    //     // this.t = t;
+    //     // tin = new int[n + 1];
+    //     // low = new int[n + 1];
+    //     // parent = new int[n + 1];
+    //     // pos = new int[n + 1];
+    //     // b = new boolean[n + 1];
+    //     // timer = 0;
+    //     // st = new ArrayList<>();
+    //     // for (int i = 0; i <= n; i++) {
+    //     //     st.add(new ArrayList<>());
+    //     // }
+    //     this(n, s, t);
+    //     this.adj = adj;
+    // }
+
+    STNumbering(int n, int s, int t, List<DoubleLinkedList<Edge>> adj) {
+        this(n, s, t);
+        this.adj = new ArrayList<>();
+        for (int i = 0; i <= n; i++) {
+            this.adj.add(new ArrayList<>());
+        }
+
+        for (int i = 0; i < n; i++) {
+            DoubleLinkedList<Edge> e = adj.get(i);
+            LinkedNode<Edge> cur = e.getFirst();
+            while (cur != null) {
+                int v = cur.value.toNode.id;
+                this.adj.get(i).add(v);
+                cur = cur.next();
+            }
+        }
+        this.adj.get(s).add(t);
+    }
+
+    private void tarjan(int u, int p) {
+        tin[u] = low[u] = ++timer;
+        pos[timer] = u;
+        b[u] = u == t;
+        parent[u] = p;
+
+        for (int v : adj.get(u)) {
+            if (v == p) continue;
+            if (tin[v] == 0) {
+                tarjan(v, u);
+                b[u] |= b[v];
+                low[u] = Math.min(low[u], low[v]);
+                if (low[v] >= tin[u]) {
+                    count++;
+                }
+            }
+            else {
+                low[u] = Math.min(low[u], tin[v]);
+            }
+        }
+
+        if (!b[u]) {
+            st.get(p).add(u);
+            st.get(pos[low[u]]).add(u);
+        }
+    }
+
+
+    private void dfs(int u) {
+        if (vis[u]) {
+            return ;
+        }
+        vis[u] = true;
+        ans[u] = count++;
+        for (int v : st.get(u)) {
+            dfs(v);
+        }
+    }
+
+    private void solve(int u) {
+        if (u == -1) {
+            return ;
+        }
+        solve(parent[u]);
+        dfs(u);
+    }
+
+    public boolean process() {
+        timer = count = 0;
+        tarjan(s, -1);
+        if (count != 1) {
+            return false;
+        }
+        for (int i = 0; i < n; i++) {
+            if (tin[i] == 0) {
+                return false;
+            }
+        }
+
+        count = 0;
+        solve(t);
+        return true;
+    }
+
+    public int[] getAns() {
+        return ans;
+    }
+}
+
 public class Main {
     static final int numDirections = 8;
     static final Integer[] dirX = {0, 1, 0, -1, 1, 1, -1, -1};
