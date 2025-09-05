@@ -244,7 +244,39 @@ vector<vector<int>> adj;
 vector<pair<int, int>> edges;
 vector<Point> points_ans, points_out;
 
-db calc(vector<Point> &points) {
+struct Function {
+  vector<db> F;
+  vector<string> names = {
+    "intersectionCount",
+    "minAngle",
+    "sumAngle",
+    "minEdgeLength",
+    "sumEdgeLength",
+    "minDistance",
+    "sumDistance"
+  };
+  Function(vector<db> F) : F(F) {}
+  // Function(vector<db> F, vector<string> names) : F(F), names(names) {}
+
+  bool operator < (const Function &other) const {
+    int len = min(F.size(), other.F.size());
+    for (int i = 0; i < len; i++) {
+      if (abs(F[i] - other.F[i]) > eps) return F[i] < other.F[i];
+    }
+    return F.size() < other.F.size();
+  }
+
+  friend ostream& operator << (ostream &os, const Function &f) {
+    // cerr << f.F.size() << " " << f.names.size() << "\n";
+    assert(f.F.size() == f.names.size());
+    for (int i = 0; i < f.F.size(); i++) {
+      os << f.names[i] << "=" << f.F[i] << "\n";
+    }
+    return os;
+  }
+};
+
+Function calc(vector<Point> &points) {
   for (int i = 0; i < n; i++) {
     if (points[i].x < 0 || points[i].x > W || points[i].y < 0 || points[i].y > H) {
       printf("0 Invalid point %d: (%.6lf, %.6lf)\n", i, points[i].x, points[i].y);
@@ -255,8 +287,11 @@ db calc(vector<Point> &points) {
   }
 
   db minEdgeDistance = inf;
+  db sumEdgeLength = 0;
   for (auto &[u, v] : edges) {
-    minimize(minEdgeDistance, points[u].distance(points[v]));
+    db d = points[u].distance(points[v]);
+    minimize(minEdgeDistance, d);
+    sumEdgeLength += d;
   }
 
   int intersectionCount = 0;
@@ -273,44 +308,62 @@ db calc(vector<Point> &points) {
   }
 
   db minAngle = inf;
+  db sumAngle = 0;
   for (int u = 0; u < n; u++) {
     vector<db> angles;
     for (int v : adj[u]) {
       angles.push_back((points[v] - points[u]).angle());
     }
     sort(angles.begin(), angles.end());
+    db curMinAngle = inf;
     for (int i = 0; i < angles.size(); i++) {
       db angleDiff = angles[(i + 1) % angles.size()] - angles[i];
       if (angleDiff < 0) angleDiff += 2 * pi;
-      minimize(minAngle, angleDiff);
+      minimize(curMinAngle, angleDiff);
+      // minimize(minAngle, angleDiff);
     }
+    sumAngle += curMinAngle;
+    minimize(minAngle, curMinAngle);
   }
 
   db minNodeToEdgeDistance = inf;
-  int ok = 0;
+  db sumNodeToEdgeDistance = 0;
+  // int ok = 0;
   for (int u = 0; u < n; u++) {
     for (auto &[v, w] : edges) {
       if (u == v || u == w) continue;
-      minimize(minNodeToEdgeDistance, Segment(points[v], points[w]).distance(points[u]));
-      if (!ok && abs(minNodeToEdgeDistance) < eps) {
-        printf("0 Invalid point %d: (%.6lf, %.6lf) is on edge (%d: (%.6lf, %.6lf), %d: (%.6lf, %.6lf))\n", 
-                u, points[u].x, points[u].y, v, points[v].x, points[v].y, w, points[w].x, points[w].y);
-        ok = 1;
-      }
+      db d = Segment(points[v], points[w]).distance(points[u]);
+      minimize(minNodeToEdgeDistance, d);
+      sumNodeToEdgeDistance += d;
+      // if (!ok && abs(minNodeToEdgeDistance) < eps) {
+      //   printf("0 Invalid point %d: (%.6lf, %.6lf) is on edge (%d: (%.6lf, %.6lf), %d: (%.6lf, %.6lf))\n", 
+      //           u, points[u].x, points[u].y, v, points[v].x, points[v].y, w, points[w].x, points[w].y);
+      //   ok = 1;
+      // }
     }
   }
 
   // final weight calculation
   // printf("intersections = %d, min angle = %.6lf, min edge distance = %.6lf, min node to edge distance = %.6lf\n",
   //        intersectionCount, minAngle, minEdgeDistance, minNodeToEdgeDistance);
-  return  intersectionCount * -100 +
-          minAngle * 200 +
-          minEdgeDistance + 
-          minNodeToEdgeDistance * 4;
+  // return  intersectionCount * -100 +
+  //         minAngle * 200 +
+  //         minEdgeDistance + 
+  //         minNodeToEdgeDistance * 4;
+  return Function({
+    (db)intersectionCount,
+    minAngle,
+    sumAngle,
+    minEdgeDistance,
+    sumEdgeLength,
+    minNodeToEdgeDistance,
+    sumNodeToEdgeDistance
+  });
 }
 
 int main() {
   scanf("%d %d", &H, &W);
+  H = W = 1e9;
   scanf("%d %d", &n, &m);
   adj.resize(n);
   edges.resize(m);
@@ -332,13 +385,17 @@ int main() {
     scanf("%lf %lf", &points_out[i].x, &points_out[i].y);
   }
 
-  db weightAns = calc(points_ans);
-  db weightOut = calc(points_out);
-  if (weightOut > weightAns + eps) {
-    printf("1.000000 Jury solution = %.6lf, participant solution = %.6lf\n", weightAns, weightOut);
-    return 0;
-  }
-  printf("%.6lf Jury solution = %.6lf, participant solution = %.6lf\n", weightOut / weightAns, weightAns, weightOut);
+  // db weightAns = calc(points_ans);
+  // db weightOut = calc(points_out);
+  // if (weightOut > weightAns + eps) {
+  //   printf("1.000000 Jury solution = %.6lf, participant solution = %.6lf\n", weightAns, weightOut);
+  //   return 0;
+  // }
+  // printf("%.6lf Jury solution = %.6lf, participant solution = %.6lf\n", weightOut / weightAns, weightAns, weightOut);
+  Function weightAns = calc(points_ans);
+  Function weightOut = calc(points_out);
+  cout << weightAns << "\n";
+  cout << weightOut << "\n";
   
   return 0;
 }

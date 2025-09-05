@@ -844,7 +844,7 @@ class SumDistanceEdge implements Function{
 
     @Override
     public String toString() {
-        return "sumDistance=" + sumDistance + " ";
+        return "sumEdgeLength=" + sumDistance + " ";
     }
 
     private int encode(Edge e) {
@@ -878,6 +878,7 @@ class SumDistanceEdge implements Function{
                 Node u = e.fromNode, v = e.toNode;
                 VarNodePosition posU = positions.get(u), posV = positions.get(v);
                 double d = Geometry.distance(posU.x(), posU.y(), posV.x(), posV.y());
+                distances.put(eId, d);
                 sumDistance += d;
             }
         }
@@ -955,7 +956,7 @@ class MinDistanceEdge implements Function{
 
     @Override
     public String toString() {
-        return "minDistance=" + evaluation() + " ";
+        return "minEdgeLength=" + evaluation() + " ";
     }
 
     private int encode(Edge e) {
@@ -1242,7 +1243,9 @@ class SumAngle implements Function {
 
         TreeMultiset<Double> angleN = angles.get(node.id);
         if (oldNodeAngle != null) {
-            sumAngleValue -= angleN.first();
+            if (!angleN.isEmpty()) {
+                sumAngleValue -= angleN.first();
+            }
             if (neighbors.size() > 1) {
                 NodeAngle prev = neighbors.lower(oldNodeAngle);
                 if (prev == null) prev = neighbors.last();
@@ -3868,7 +3871,7 @@ public class Main {
     }
 
     public static void test1() throws IOException {
-        Kattio io = new Kattio("tests/1.in");
+        Kattio io = new Kattio("tests/4.in");
         // int ROW = 20;
         // int COL = 20; // the graph is presented on a grid ROW x COL
         int ROW = io.nextInt();
@@ -3962,12 +3965,13 @@ public class Main {
         StringBuilder str = new StringBuilder();
         for (Function f : F.F) {
             str.append(f);
+            str.append("\n");
         }
         
         boolean firstImprovement = true;
         List<NeighborExplorer> explorers = new ArrayList<>();
-        explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, 1000));
-        explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, 1000));
+        explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, 100));
+        explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, 100));
         final int maxIterations = 10000;
         for (int iter = 0; iter < maxIterations; iter++) {
             Move selectedMove = null;
@@ -3999,6 +4003,7 @@ public class Main {
                     str.setLength(0);
                     for (Function f : F.F) {
                         str.append(f);
+                        str.append("\n");
                     }
                     model.setNodePositionsValue(solutionPositions);
                 }
@@ -4021,7 +4026,10 @@ public class Main {
         for (NodePosition pos : solutionPositions) {
             System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
         }
-
+        for (NodePosition pos : solutionPositions) {
+            System.err.printf("%d %d ", pos.x(), pos.y());
+        }
+        System.err.println();
         for (NodePosition pos : solutionPositions) {
             io.printf("%d: (%d, %d), ", pos.id(), pos.x(), pos.y());
         }
@@ -4032,12 +4040,20 @@ public class Main {
                 NodePosition pos1 = solutionPositions.get(i);
                 pos.assign(pos1.x(), pos1.y());
             }
-            NumberIntersectionEdges f3 = new NumberIntersectionEdges(G, varPos);// to be minimized
-            MinAngle f2 = new MinAngle(G, varPos);// to be maximized
-            MinDistanceEdge f1 = new MinDistanceEdge(G, varPos);// to be maximized
-            MinDistanceNodeEdge f4 = new MinDistanceNodeEdge(G, varPos);// to be maximized
-            Function fObj = new ObjectiveFunction(f3, f2, f1, f4, 100.0, 200.0, 1.0, 4);
-            System.err.println(fObj);
+            // NumberIntersectionEdges f3 = new NumberIntersectionEdges(G, varPos);// to be minimized
+            // MinAngle f2 = new MinAngle(G, varPos);// to be maximized
+            // MinDistanceEdge f1 = new MinDistanceEdge(G, varPos);// to be maximized
+            // MinDistanceNodeEdge f4 = new MinDistanceNodeEdge(G, varPos);// to be maximized
+            // Function fObj = new ObjectiveFunction(f3, f2, f1, f4, 100.0, 200.0, 1.0, 4);
+            // System.err.println(fObj);
+            NumberIntersectionEdges f3 = new NumberIntersectionEdges(G,varPos);// to be minimized
+            MinAngle f2 = new MinAngle(G,varPos);// to be maximized
+            SumAngle f2a = new SumAngle(G,varPos);// to be maximized
+            MinDistanceEdge f1 = new MinDistanceEdge(G,varPos);// to be maximized
+            SumDistanceEdge f1a = new SumDistanceEdge(G,varPos);// to be maximized
+            MinDistanceNodeEdge f4 = new MinDistanceNodeEdge(G,varPos);// to be maximized
+            SumDistanceNodeEdge f4a = new SumDistanceNodeEdge(G,varPos);// to be maximized
+            System.err.printf("%s%s%s%s%s%s%s\n", f3, f2, f2a, f1, f1a, f4, f4a);
         }
 
         io.close();
