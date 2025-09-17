@@ -1,5 +1,6 @@
 package simple;
 
+import java.io.File;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
@@ -313,6 +314,15 @@ class Segment2D {
     @Override
     public String toString() {
         return String.format("Segment2D(%s, %s)", x, y);
+    }
+
+    public boolean fastIntersect(Segment2D seg) {
+        double d1 = x.cross(y, seg.x);
+        double d2 = x.cross(y, seg.y);
+        double d3 = seg.x.cross(seg.y, x);
+        double d4 = seg.x.cross(seg.y, y);
+        if (d1 * d2 < -Point2D.eps && d3 * d4 < -Point2D.eps) return true;
+        return false;
     }
 
     public Point2D intersect(Segment2D seg) {
@@ -3157,8 +3167,128 @@ class OneRandomNeighborhood implements NeighborExplorer {
             while (iterations-- > 0) {
                 int i = random.nextInt(G.getNodes().size());
                 VarNodePosition varNodePosition = varNodeList.get(i);
-                int newX = random.nextInt(ROW);
-                int newY = random.nextInt(COL);
+                // int d = random.nextInt(2) + 1;
+                int d = 1;
+                int LX = Math.max(0, varNodePosition.x() - d);
+                int RX = Math.min(COL, varNodePosition.x() + d);
+                int LY = Math.max(0, varNodePosition.y() - d);
+                int RY = Math.min(ROW, varNodePosition.y() + d);
+                // int newX = random.nextInt(RX - LX + 1) + LX;
+                // int newY = random.nextInt(RY - LY + 1) + LY;
+                boolean found = false;
+
+                for (int newX = LX; newX <= RX && !found; newX++) {
+                    for (int newY = LY; newY <= RY && !found; newY++) {
+                        if (newX == varNodePosition.x() && newY == varNodePosition.y()) continue;
+                        LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
+                        Move move = new Move(varNodePosition, newX, newY, current);
+                        if (current.better(values)) {
+                            if (firstImprovement) {
+                                moves.add(move);
+                                found = true;
+                                break;
+                            }
+                            moves.clear();
+                            moves.add(move);
+                            values = current;
+                        }
+                        else if (current.equals(values)) {
+                            moves.add(move);
+                        }
+                    }
+                }
+                if (found) break;
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
+class OneRandomCOL implements NeighborExplorer {
+    private final int COL;
+    private final Graph G;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public OneRandomCOL(int COL, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.COL = COL;
+        this.G = G;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = new Random();
+            while (iterations-- > 0) {
+                int i = random.nextInt(G.getNodes().size());
+                VarNodePosition varNodePosition = varNodeList.get(i);
+                int newX;
+                do {
+                    newX = random.nextInt(COL);
+                } while (newX == varNodePosition.x());
+                int newY = varNodePosition.y();
+
+                LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
+                Move move = new Move(varNodePosition, newX, newY, current);
+                if (current.better(values)) {
+                    if (firstImprovement) {
+                        moves.add(move);
+                        break;
+                    }
+                    moves.clear();
+                    moves.add(move);
+                    values = current;
+                }
+                else if (current.equals(values)) {
+                    moves.add(move);
+                }
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
+class OneRandomROW implements NeighborExplorer {
+    private final int ROW;
+    private final Graph G;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public OneRandomROW(int ROW, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.ROW = ROW;
+        this.G = G;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = new Random();
+            while (iterations-- > 0) {
+                int i = random.nextInt(G.getNodes().size());
+                VarNodePosition varNodePosition = varNodeList.get(i);
+                int newX = varNodePosition.x();
+                int newY;
+                do {
+                    newY = random.nextInt(ROW);
+                } while (newY == varNodePosition.y());
 
                 LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
                 Move move = new Move(varNodePosition, newX, newY, current);
@@ -3217,19 +3347,113 @@ class TwoRandomNeighborhood implements NeighborExplorer {
                 VarNodePosition N2 = varNodeList.get(i2);
 
                 int oldX1 = N1.x();
-                int oldY1 = N2.y();
+                int oldY1 = N1.y();
+                // int d1 = random.nextInt(2) + 1;
+                int d1 = 1;
 
-                int newX1 = random.nextInt(ROW);
-                int newY1 = random.nextInt(COL);
-                int newX2 = random.nextInt(ROW);
-                int newY2 = random.nextInt(COL);
+                int LX1 = Math.max(0, oldX1 - d1);
+                int RX1 = Math.min(COL, oldX1 + d1);
+                int LY1 = Math.max(0, oldY1 - d1);
+                int RY1 = Math.min(ROW, oldY1 + d1);
 
-                F.propagateOneNodeMove(N1, newX1, newY1);
-                model.move(N1, newX1, newY1);
+                // int newX1 = random.nextInt(COL);
+                // int newY1 = random.nextInt(ROW);
+                // int newX2 = random.nextInt(COL);
+                // int newY2 = random.nextInt(ROW);
+                int newX1 = random.nextInt(RX1 - LX1 + 1) + LX1;
+                int newY1 = random.nextInt(RY1 - LY1 + 1) + LY1;
 
-                LexMultiValues current = F.evaluateOneNodeMove(N2, newX2, newY2);
-                Move move = new Move(N1, newX1, newY1, current);
-                move.ins(N2, newX2, newY2);
+                boolean found = false;
+                // for (int newX1 = LX1; newX1 <= RX1 && !found; newX1++) {
+                    // for (int newY1 = LY1; newY1 <= RY1 && !found; newY1++) {
+                        // if (newX1 == oldX1 && newY1 == oldY1) continue;
+                        // int d2 = random.nextInt(2) + 1;
+                        int d2 = 1;
+                        int LX2 = Math.max(0, N2.x() - d2);
+                        int RX2 = Math.min(COL, N2.x() + d2);
+                        int LY2 = Math.max(0, N2.y() - d2);
+                        int RY2 = Math.min(ROW, N2.y() + d2);
+                        int newX2 = random.nextInt(RX2 - LX2 + 1) + LX2;
+                        int newY2 = random.nextInt(RY2 - LY2 + 1) + LY2;
+                        F.propagateOneNodeMove(N1, newX1, newY1);
+                        model.move(N1, newX1, newY1);
+
+
+                        // for (int newX2 = LX2; newX2 <= RX2 && !found; newX2++) {
+                            // for (int newY2 = LY2; newY2 <= RY2 && !found; newY2++) {
+                                // if (newX2 == N2.x() && newY2 == N2.y()) continue;
+                                LexMultiValues current = F.evaluateOneNodeMove(N2, newX2, newY2);
+                                Move move = new Move(N1, newX1, newY1, current);
+                                move.ins(N2, newX2, newY2);
+
+                                if (current.better(values)) {
+                                    if (firstImprovement) {
+                                        moves.add(move);
+                                        found = true;
+                                        break;
+                                    }
+                                    moves.clear();
+                                    moves.add(move);
+                                    values = current;
+                                }
+                                else if (current.equals(values)) {
+                                    moves.add(move);
+                                }
+
+                            // }
+                        // }
+
+                        F.propagateOneNodeMove(N1, oldX1, oldY1);
+                        model.move(N1, oldX1, oldY1);
+                    // }
+                // }
+                if (found) break;
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
+class TwoRandomSwap implements NeighborExplorer {
+    private final Graph G;
+    private final CBLSGPModel model;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public TwoRandomSwap(Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.G = G;
+        this.model = model;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = new Random();
+            while (iterations-- > 0) {
+                int i1 = random.nextInt(G.getNodes().size()), i2;
+                do {
+                    i2 = random.nextInt(G.getNodes().size());
+                } while (i1 == i2);
+
+                VarNodePosition N1 = varNodeList.get(i1);
+                VarNodePosition N2 = varNodeList.get(i2);
+
+                int oldX1 = N1.x(), oldY1 = N1.y();
+                F.propagateOneNodeMove(N1, N2.x(), N2.y());
+                model.move(N1, N2.x(), N2.y());
+
+                LexMultiValues current = F.evaluateOneNodeMove(N2, oldX1, oldY1);
+                Move move = new Move(N1, N2.x(), N2.y(), current);
+                move.ins(N2, oldX1, oldY1);
 
                 if (current.better(values)) {
                     if (firstImprovement) {
@@ -3246,6 +3470,79 @@ class TwoRandomNeighborhood implements NeighborExplorer {
 
                 F.propagateOneNodeMove(N1, oldX1, oldY1);
                 model.move(N1, oldX1, oldY1);
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
+class ThreeRandomExchange implements NeighborExplorer {
+    private final Graph G;
+    private final CBLSGPModel model;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public ThreeRandomExchange(Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.G = G;
+        this.model = model;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        if (G.getNodes().size() < 3) return null;
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = new Random();
+            while (iterations-- > 0) {
+                int i1 = random.nextInt(G.getNodes().size()), i2, i3;
+                do {
+                    i2 = random.nextInt(G.getNodes().size());
+                } while (i1 == i2);
+                do {
+                    i3 = random.nextInt(G.getNodes().size());
+                } while (i1 == i3 || i2 == i3);
+
+                VarNodePosition N1 = varNodeList.get(i1);
+                VarNodePosition N2 = varNodeList.get(i2);
+                VarNodePosition N3 = varNodeList.get(i3);
+
+                int oldX1 = N1.x(), oldY1 = N1.y();
+                int oldX2 = N2.x(), oldY2 = N2.y();
+                F.propagateOneNodeMove(N1, N2.x(), N2.y());
+                model.move(N1, N2.x(), N2.y());
+                F.propagateOneNodeMove(N2, N3.x(), N3.y());
+                model.move(N2, N3.x(), N3.y());
+
+                LexMultiValues current = F.evaluateOneNodeMove(N3, oldX1, oldY1);
+                Move move = new Move(N1, oldX2, oldY2, current);
+                move.ins(N2, N3.x(), N3.y());
+                move.ins(N3, oldX1, oldY1);
+
+                if (current.better(values)) {
+                    if (firstImprovement) {
+                        moves.add(move);
+                        break;
+                    }
+                    moves.clear();
+                    moves.add(move);
+                    values = current;
+                }
+                else if (current.equals(values)) {
+                    moves.add(move);
+                }
+
+                F.propagateOneNodeMove(N1, oldX1, oldY1);
+                model.move(N1, oldX1, oldY1);
+                F.propagateOneNodeMove(N2, oldX2, oldY2);
+                model.move(N2, oldX2, oldY2);
             }
 
         if (moves.isEmpty()) {
@@ -3870,12 +4167,62 @@ public class Main {
 
     }
 
-    public static void test1() throws IOException {
-        Kattio io = new Kattio("tests/4.in");
+    public static void generateInitialSolution1(int ROW, int COL, CBLSGPModel model, Graph G, List<DoubleLinkedList<Edge>> adj, LexMultiFunctions F) {
+        int n = G.getNodes().size();
+        List<Integer> nodes = new ArrayList<>();
+        for (Node node : G.getNodes()) {
+            nodes.add(node.id);
+        }
+        Collections.shuffle(nodes, new Random());
+        for (int i = 0; i < n; i++) {
+            int id = nodes.get(i);
+            VarNodePosition v = model.getVarNode(id);
+            if (i == 0) {
+                if (n < 2) {
+                    F.propagateOneNodeMove(v, COL >> 1, ROW >> 1);
+                    model.move(v, COL >> 1, ROW >> 1);
+                }
+                else {
+                    F.propagateOneNodeMove(v, 0, 0);
+                    model.move(v, 0, 0);
+                }
+                continue;
+            }
+            if (i == 1) {
+                F.propagateOneNodeMove(v, COL, ROW);
+                model.move(v, COL, ROW);
+                continue;
+            }
+            int bestX = v.x(), bestY = v.y();
+            LexMultiValues bestValues = F.evaluation();
+            for (int x = 0; x <= COL; x++) {
+                for (int y = 0; y <= ROW; y++) {
+                    LexMultiValues current = F.evaluateOneNodeMove(v, x, y);
+                    if (current.better(bestValues)) {
+                        bestValues = current;
+                        bestX = x;
+                        bestY = y;
+                    }
+                }
+            }
+            F.propagateOneNodeMove(v, bestX, bestY);
+            model.move(v, bestX, bestY);
+        }
+    }
+
+
+    public static String dir;
+    public static void test1(int tt) throws IOException {
+        long startTime = System.currentTimeMillis();
+        Kattio io = new Kattio("tests/" + tt + ".in", dir + "/" + tt + ".out");
+        System.err.println("test " + tt + " running...");
+
         // int ROW = 20;
         // int COL = 20; // the graph is presented on a grid ROW x COL
         int ROW = io.nextInt();
         int COL = io.nextInt(); // the graph is presented on a grid ROW x COL
+        ROW *= 4;
+        COL *= 4;
         // int n  = 20;// number of nodes 0,1, 2, ..., n-1
         int n = io.nextInt(); // number of nodes 0,1, 2, ..., n-1
         List<Node> nodes = new ArrayList<>();
@@ -3927,8 +4274,23 @@ public class Main {
             // model.move(v, rnd.nextInt(COL + 1), rnd.nextInt(ROW + 1));
 //            F.propagateOneNodeMove(v, v.x(), v.y());
         }
+        int check = io.nextInt();
+        List<Integer> X = new ArrayList<>(), Y = new ArrayList<>();
+        if (check == 1) {
+            for (int i = 0; i < n; i++) {
+                int x = io.nextInt() * 2;
+                int y = io.nextInt() * 4;
+                VarNodePosition v = varPos.get(nodes.get(i));
+                model.move(v, x, y);
+                X.add(x);
+                Y.add(y);
+            }
+        }
+        else {
+            generateInitialSolution(ROW, COL, model, G, adj);
+        }
 
-        generateInitialSolution(ROW, COL, model, G, adj);
+
 
         NumberIntersectionEdges F3 = new NumberIntersectionEdges(G,varPos);// to be minimized
         MinAngle F2 = new MinAngle(G,varPos);// to be maximized
@@ -3938,6 +4300,8 @@ public class Main {
         MinDistanceNodeEdge F4 = new MinDistanceNodeEdge(G,varPos);// to be maximized
         SumDistanceNodeEdge F4a = new SumDistanceNodeEdge(G,varPos);// to be maximized
 
+        LexMultiFunctions F0 = new LexMultiFunctions();
+        F0.add(F3);
         LexMultiFunctions F = new LexMultiFunctions();
         F.add(F3);
         F.add(F2);
@@ -3970,12 +4334,18 @@ public class Main {
         
         boolean firstImprovement = true;
         List<NeighborExplorer> explorers = new ArrayList<>();
-        explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, 100));
-        explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, 100));
+        final int numRandom = 100;
+        explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, numRandom));
+        explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, numRandom));
+        explorers.add(new OneRandomCOL(COL, G, F, varPosList, numRandom));
+        explorers.add(new OneRandomROW(ROW, G, F, varPosList, numRandom));
+        explorers.add(new TwoRandomSwap(G, model, F, varPosList, numRandom));
+        explorers.add(new ThreeRandomExchange(G, model, F, varPosList, numRandom));
         final int maxIterations = 10000;
+        // final int maxIterations = 0;
         for (int iter = 0; iter < maxIterations; iter++) {
             Move selectedMove = null;
-            for (int k = 0; k < 2; k++) {
+            for (int k = 0; k < explorers.size(); k++) {
                 Move move = explorers.get(k).explore(firstImprovement);
                 if (move != null) {
                     if (firstImprovement) {
@@ -4009,12 +4379,36 @@ public class Main {
                 }
             }
             else {
-                // generateInitialSolution(ROW, COL, model, G, adj);
+                // generateInitialSolution1(ROW, COL, model, G, adj, F0);
                 Random rnd = new Random();
+                // for (int i = 0; i < n; i++) {
+                //     VarNodePosition v = varPos.get(nodes.get(i));
+                //     int newX = rnd.nextInt(COL + 1);
+                //     int newY = rnd.nextInt(ROW + 1);
+                //     F.propagateOneNodeMove(v, newX, newY);
+                //     model.move(v, newX, newY);
+                // }
+                if (rnd.nextInt(2) == 1) {
+                    for (int i = 0; i < n; i++) {
+                        X.set(i, COL - X.get(i));
+                    }
+                }
+                if (rnd.nextInt(2) == 0) {
+                    for (int i = 0; i < n; i++) {
+                        Y.set(i, ROW - Y.get(i));
+                    }
+                }
+                if (rnd.nextInt(2) == 1) {
+                    for (int i = 0; i < n; i++) {
+                        int t = X.get(i);
+                        X.set(i, Y.get(i));
+                        Y.set(i, t);
+                    }
+                }
                 for (int i = 0; i < n; i++) {
                     VarNodePosition v = varPos.get(nodes.get(i));
-                    int newX = rnd.nextInt(COL + 1);
-                    int newY = rnd.nextInt(ROW + 1);
+                    int newX = X.get(i);
+                    int newY = Y.get(i);
                     F.propagateOneNodeMove(v, newX, newY);
                     model.move(v, newX, newY);
                 }
@@ -4022,14 +4416,16 @@ public class Main {
         }
 
 
-        System.err.printf("%s\n%s\n", str, solutionEval);
+        io.printf("%s\n%s\n", str, solutionEval);
         for (NodePosition pos : solutionPositions) {
-            System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
+            // System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
+            io.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
         }
         for (NodePosition pos : solutionPositions) {
-            System.err.printf("%d %d ", pos.x(), pos.y());
+            // System.err.printf("%d %d ", pos.x(), pos.y());
+            io.printf("%d %d ", pos.x(), pos.y());
         }
-        System.err.println();
+        io.println();
         for (NodePosition pos : solutionPositions) {
             io.printf("%d: (%d, %d), ", pos.id(), pos.x(), pos.y());
         }
@@ -4053,15 +4449,27 @@ public class Main {
             SumDistanceEdge f1a = new SumDistanceEdge(G,varPos);// to be maximized
             MinDistanceNodeEdge f4 = new MinDistanceNodeEdge(G,varPos);// to be maximized
             SumDistanceNodeEdge f4a = new SumDistanceNodeEdge(G,varPos);// to be maximized
-            System.err.printf("%s%s%s%s%s%s%s\n", f3, f2, f2a, f1, f1a, f4, f4a);
+            // System.err.printf("%s%s%s%s%s%s%s\n", f3, f2, f2a, f1, f1a, f4, f4a);
+            io.printf("%s%s%s%s%s%s%s\n", f3, f2, f2a, f1, f1a, f4, f4a);
         }
+        long endTime = System.currentTimeMillis();
+        io.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
+        System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
+
 
         io.close();
     }
     public static void main(String[] args){
-        long startTime = System.currentTimeMillis();
         try {
-            test1();
+            long startTime = System.currentTimeMillis();
+            dir = "tests/" + startTime;
+            File newDirectory = new File(dir);
+            if (newDirectory.mkdir()) {
+                System.out.println("Directory: " + dir + " created");
+                for (int i = 0; i < 5; i++) test1(i);
+            } else {
+                System.out.println("Directory: " + dir + " not created");
+            }
             // planarGen();
             // completeGen();
             // circleGen();
@@ -4071,7 +4479,5 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        long endTime = System.currentTimeMillis();
-        System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
     }
 }
