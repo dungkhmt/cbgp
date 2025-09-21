@@ -1,4 +1,5 @@
 // cp_layout.cpp
+// g++ -std=c++17 -O2 -I include -I include/ogdf-release cp_layout.cpp -L . -lOGDF -lCOIN -o cp_layout.exe ; .\cp_layout 
 #include <ogdf/basic/Graph.h>
 #include <ogdf/basic/GridLayout.h>
 #include <ogdf/basic/extended_graph_alg.h>
