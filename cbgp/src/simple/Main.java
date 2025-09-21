@@ -1,4 +1,4 @@
-package simple;
+﻿package simple;
 
 import java.io.File;
 import java.io.BufferedOutputStream;
@@ -2515,7 +2515,7 @@ class LexMultiValues{
         for (int i = 0; i < values.size(); i++) {
             double a = values.get(i), b = V.values.get(i);
             if (a >= b + Point2D.eps) return true;
-            if (a <= b + Point2D.eps) return false;
+            if (a <= b - Point2D.eps) return false;
         }
         return false;
     }
@@ -3207,6 +3207,61 @@ class OneRandomNeighborhood implements NeighborExplorer {
     }
 }
 
+class OneRandomMove implements NeighborExplorer {
+    private final int ROW, COL;
+    private final Graph G;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public OneRandomMove(int ROW, int COL, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.ROW = ROW;
+        this.COL = COL;
+        this.G = G;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = new Random();
+            while (iterations-- > 0) {
+                int i = random.nextInt(G.getNodes().size());
+                VarNodePosition varNodePosition = varNodeList.get(i);
+                int oldX = varNodePosition.x(), oldY = varNodePosition.y();
+                int newX, newY;
+                do {
+                    newX = random.nextInt(COL + 1);
+                    newY = random.nextInt(ROW + 1);
+                } while (newX == oldX && newY == oldY);
+
+                LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
+                Move move = new Move(varNodePosition, newX, newY, current);
+                if (current.better(values)) {
+                    if (firstImprovement) {
+                        moves.add(move);
+                        break;
+                    }
+                    moves.clear();
+                    moves.add(move);
+                    values = current;
+                }
+                else if (current.equals(values)) {
+                    moves.add(move);
+                }
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
 class OneRandomCOL implements NeighborExplorer {
     private final int COL;
     private final Graph G;
@@ -3313,6 +3368,87 @@ class OneRandomROW implements NeighborExplorer {
     }
 }
 
+class TwoRandomMove implements NeighborExplorer {
+    private final int ROW, COL;
+    private final Graph G;
+    private final CBLSGPModel model;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public TwoRandomMove(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.ROW = ROW;
+        this.COL = COL;
+        this.G = G;
+        this.model = model;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = new Random();
+            while (iterations-- > 0) {
+                int i1 = random.nextInt(G.getNodes().size()), i2;
+                do {
+                    i2 = random.nextInt(G.getNodes().size());
+                } while (i1 == i2);
+
+                VarNodePosition N1 = varNodeList.get(i1);
+                VarNodePosition N2 = varNodeList.get(i2);
+
+                int oldX1 = N1.x();
+                int oldY1 = N1.y();
+                int oldX2 = N2.x();
+                int oldY2 = N2.y();
+                int newX1, newY1;
+                int newX2, newY2;
+
+                do {
+                    newX1 = random.nextInt(COL + 1);
+                    newY1 = random.nextInt(ROW + 1);
+                } while (newX1 == oldX1 && newY1 == oldY1);
+
+                do {
+                    newX2 = random.nextInt(COL + 1);
+                    newY2 = random.nextInt(ROW + 1);
+                } while (newX2 == oldX2 && newY2 == oldY2);
+
+                F.propagateOneNodeMove(N1, newX1, newY1);
+                model.move(N1, newX1, newY1);
+                LexMultiValues current = F.evaluateOneNodeMove(N2, newX2, newY2);
+                Move move = new Move(N1, newX1, newY1, current);
+                move.ins(N2, newX2, newY2);
+                if (current.better(values)) {
+                    if (firstImprovement) {
+                        moves.add(move);
+                        F.propagateOneNodeMove(N1, oldX1, oldY1);
+                        model.move(N1, oldX1, oldY1);
+                        break;
+                    }
+                    moves.clear();
+                    moves.add(move);
+                    values = current;
+                }
+                else if (current.equals(values)) {
+                    moves.add(move);
+                }
+
+                F.propagateOneNodeMove(N1, oldX1, oldY1);
+                model.move(N1, oldX1, oldY1);
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
 class TwoRandomNeighborhood implements NeighborExplorer {
     private final int ROW, COL;
     private final Graph G;
@@ -3389,6 +3525,8 @@ class TwoRandomNeighborhood implements NeighborExplorer {
                                 if (current.better(values)) {
                                     if (firstImprovement) {
                                         moves.add(move);
+                                        F.propagateOneNodeMove(N1, oldX1, oldY1);
+                                        model.move(N1, oldX1, oldY1);
                                         found = true;
                                         break;
                                     }
@@ -3457,6 +3595,9 @@ class TwoRandomSwap implements NeighborExplorer {
 
                 if (current.better(values)) {
                     if (firstImprovement) {
+                        F.propagateOneNodeMove(N1, oldX1, oldY1);
+                        model.move(N1, oldX1, oldY1);
+
                         moves.add(move);
                         break;
                     }
@@ -3529,6 +3670,10 @@ class ThreeRandomExchange implements NeighborExplorer {
                 if (current.better(values)) {
                     if (firstImprovement) {
                         moves.add(move);
+                        F.propagateOneNodeMove(N1, oldX1, oldY1);
+                        model.move(N1, oldX1, oldY1);
+                        F.propagateOneNodeMove(N2, oldX2, oldY2);
+                        model.move(N2, oldX2, oldY2);
                         break;
                     }
                     moves.clear();
@@ -4236,8 +4381,10 @@ public class Main {
             adj.add(new DoubleLinkedList<>());
         }
         for (int i = 0; i < n_edges; i++) {
-            int u = io.nextInt() - 1;
-            int v = io.nextInt() - 1;
+            // int u = io.nextInt() - 1;
+            // int v = io.nextInt() - 1;
+            int u = io.nextInt();
+            int v = io.nextInt();
             // if (u == v) continue; // skip self-loops
             
             io.printf("(%d, %d), ", u, v); 
@@ -4304,12 +4451,12 @@ public class Main {
         F0.add(F3);
         LexMultiFunctions F = new LexMultiFunctions();
         F.add(F3);
+        F.add(F4);
         F.add(F2);
         F.add(F2a);
+        F.add(F4a);
         F.add(F1);
         F.add(F1a);
-        F.add(F4);
-        F.add(F4a);
 
         model.close();
 
@@ -4336,7 +4483,9 @@ public class Main {
         List<NeighborExplorer> explorers = new ArrayList<>();
         final int numRandom = 100;
         explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, numRandom));
+        explorers.add(new OneRandomMove(ROW, COL, G, F, varPosList, numRandom));
         explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, numRandom));
+        explorers.add(new TwoRandomMove(ROW, COL, G, model, F, varPosList, numRandom));
         explorers.add(new OneRandomCOL(COL, G, F, varPosList, numRandom));
         explorers.add(new OneRandomROW(ROW, G, F, varPosList, numRandom));
         explorers.add(new TwoRandomSwap(G, model, F, varPosList, numRandom));
@@ -4360,14 +4509,19 @@ public class Main {
                 }
             }
             if (selectedMove != null) {
+                // System.err.println("iter " + iter + ": " + selectedMove);
                 for (MoveNode moveNode : selectedMove.moves) {
                     VarNodePosition pos = moveNode.varNodePosition;
                     int newX = moveNode.newX;
                     int newY = moveNode.newY;
-                    
+                    // System.err.println(pos.id + ": (" + pos.x() + "->" + newX + ", " + pos.y() + "->" + newY + ")");
                     F.propagateOneNodeMove(pos, newX, newY);
                     model.move(pos, newX, newY);
                 }
+                // for (Function f : F.F) {
+                //     System.err.print(f + " ");
+                // }
+                // System.err.println();
                 if (selectedMove.better(solutionEval)) {
                     solutionEval = selectedMove.values;
                     str.setLength(0);
@@ -4388,30 +4542,42 @@ public class Main {
                 //     F.propagateOneNodeMove(v, newX, newY);
                 //     model.move(v, newX, newY);
                 // }
-                if (rnd.nextInt(2) == 1) {
+                if (rnd.nextInt(3) == 0) {
+                    if (rnd.nextInt(2) == 1) {
+                        for (int i = 0; i < n; i++) {
+                            X.set(i, COL - X.get(i));
+                        }
+                    }
+                    if (rnd.nextInt(2) == 0) {
+                        for (int i = 0; i < n; i++) {
+                            Y.set(i, ROW - Y.get(i));
+                        }
+                    }
+                    if (rnd.nextInt(2) == 1) {
+                        for (int i = 0; i < n; i++) {
+                            int t = X.get(i);
+                            X.set(i, Y.get(i));
+                            Y.set(i, t);
+                        }
+                    }
                     for (int i = 0; i < n; i++) {
-                        X.set(i, COL - X.get(i));
+                        VarNodePosition v = varPos.get(nodes.get(i));
+                        int newX = X.get(i);
+                        int newY = Y.get(i);
+                        F.propagateOneNodeMove(v, newX, newY);
+                        model.move(v, newX, newY);
                     }
                 }
-                if (rnd.nextInt(2) == 0) {
+                else {
                     for (int i = 0; i < n; i++) {
-                        Y.set(i, ROW - Y.get(i));
+                        VarNodePosition v = varPos.get(nodes.get(i));
+                        int newX = rnd.nextInt(COL + 1);
+                        int newY = rnd.nextInt(ROW + 1);
+                        F.propagateOneNodeMove(v, newX, newY);
+                        model.move(v, newX, newY);
                     }
                 }
-                if (rnd.nextInt(2) == 1) {
-                    for (int i = 0; i < n; i++) {
-                        int t = X.get(i);
-                        X.set(i, Y.get(i));
-                        Y.set(i, t);
-                    }
-                }
-                for (int i = 0; i < n; i++) {
-                    VarNodePosition v = varPos.get(nodes.get(i));
-                    int newX = X.get(i);
-                    int newY = Y.get(i);
-                    F.propagateOneNodeMove(v, newX, newY);
-                    model.move(v, newX, newY);
-                }
+                // break;
             }
         }
 
@@ -4466,7 +4632,10 @@ public class Main {
             File newDirectory = new File(dir);
             if (newDirectory.mkdir()) {
                 System.out.println("Directory: " + dir + " created");
-                for (int i = 0; i < 5; i++) test1(i);
+                // for (int i = 5; i < 10; i++) test1(i);
+                Integer[] tests = {5, 6, 7, 8, 9};
+                // Integer[] tests = {5};
+                for (int i : tests) test1(i);
             } else {
                 System.out.println("Directory: " + dir + " not created");
             }
@@ -4481,3 +4650,4 @@ public class Main {
         }
     }
 }
+
