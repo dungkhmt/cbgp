@@ -338,6 +338,7 @@ Function calc(vector<Point> &points) {
       minimize(curMinAngle, angleDiff);
       // minimize(minAngle, angleDiff);
     }
+    // std::cerr << curMinAngle << "\n";
     sumAngle += curMinAngle;
     minimize(minAngle, curMinAngle);
   }
@@ -382,7 +383,7 @@ int main() {
 	std::cin.tie(nullptr);
 	// start time
 	auto start = std::chrono::high_resolution_clock::now();
-	for (int _ = 9; _ < 10; _++) {
+	for (int _ = 10; _ < 15; _++) {
 		std::stringstream ss; ss << _;
 		// freopen(("tests/" + ss.str() + ".in").c_str(), "r", stdin);
 		std::ifstream in(("tests/" + ss.str() + ".in").c_str());
@@ -405,18 +406,25 @@ int main() {
 		}
 
 		adj.assign(n, vector<int>());
+    map<pair<int, int>, int> vis;
+    edges.clear();
 		for (int i = 0; i < m; i++) {
 			int u, v;
 			in >> u >> v;
-			u++; v++;
 			// std::cerr << u << " " << v << "\n";
 			if (u < 1 || u > n || v < 1 || v > n || u == v) {
-				std::cerr << _ <<  ": Invalid edge (" << (u - 1) << ", " << (v - 1) << ")!\n";
+				std::cerr << _ <<  ": Invalid edge (" << u << ", " << v << ")!\n";
 				continue;
 			}
+      if (vis.count({u, v}) || vis.count({v, u})) {
+        std::cerr << _ <<  ": Duplicate edge (" << u << ", " << v << ")!\n";
+        continue;
+      }
+      vis[{u, v}] = 1;
 			out << "(" << (u - 1) << ", " << (v - 1) << "), ";
 			adj[u - 1].push_back(v - 1);
 			adj[v - 1].push_back(u - 1);
+      edges.push_back({u - 1, v - 1});
 			G.newEdge(id[u], id[v]);
 		}
 		out << "\n";
@@ -439,7 +447,6 @@ int main() {
 			int x = grid.x(id[i]);
 			int y = grid.y(id[i]);
 			coords[i] = {x, y};
-			points[i - 1] = Point(x, y);
 			minX = std::min(minX, x);
 			maxX = std::max(maxX, x);
 			minY = std::min(minY, y);
@@ -456,6 +463,7 @@ int main() {
 
 		for (int i = 1; i <= n; i++) {
 			out << coords[i].first - minX << " " << coords[i].second - minY << " ";
+			points[i - 1] = Point(coords[i].first - minX, coords[i].second - minY);
 		}
 		out << "\n";
 

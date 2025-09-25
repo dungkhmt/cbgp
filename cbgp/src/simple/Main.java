@@ -4381,10 +4381,10 @@ public class Main {
             adj.add(new DoubleLinkedList<>());
         }
         for (int i = 0; i < n_edges; i++) {
-            // int u = io.nextInt() - 1;
-            // int v = io.nextInt() - 1;
-            int u = io.nextInt();
-            int v = io.nextInt();
+            int u = io.nextInt() - 1;
+            int v = io.nextInt() - 1;
+            // int u = io.nextInt();
+            // int v = io.nextInt();
             // if (u == v) continue; // skip self-loops
             
             io.printf("(%d, %d), ", u, v); 
@@ -4421,19 +4421,25 @@ public class Main {
             // model.move(v, rnd.nextInt(COL + 1), rnd.nextInt(ROW + 1));
 //            F.propagateOneNodeMove(v, v.x(), v.y());
         }
-        int check = io.nextInt();
         List<Integer> X = new ArrayList<>(), Y = new ArrayList<>();
-        if (check == 1) {
-            for (int i = 0; i < n; i++) {
-                int x = io.nextInt() * 2;
-                int y = io.nextInt() * 4;
-                VarNodePosition v = varPos.get(nodes.get(i));
-                model.move(v, x, y);
-                X.add(x);
-                Y.add(y);
+        int check = 0;
+        try {
+            check = io.nextInt();
+            if (check == 1) {
+                for (int i = 0; i < n; i++) {
+                    int x = io.nextInt() * 2;
+                    int y = io.nextInt() * 4;
+                    VarNodePosition v = varPos.get(nodes.get(i));
+                    model.move(v, x, y);
+                    X.add(x);
+                    Y.add(y);
+                }
+            }
+            else {
+                generateInitialSolution(ROW, COL, model, G, adj);
             }
         }
-        else {
+        catch (Exception e) {
             generateInitialSolution(ROW, COL, model, G, adj);
         }
 
@@ -4542,7 +4548,7 @@ public class Main {
                 //     F.propagateOneNodeMove(v, newX, newY);
                 //     model.move(v, newX, newY);
                 // }
-                if (rnd.nextInt(3) == 0) {
+                if (check == 0 && rnd.nextInt(3) == 0) {
                     if (rnd.nextInt(2) == 1) {
                         for (int i = 0; i < n; i++) {
                             X.set(i, COL - X.get(i));
@@ -4582,11 +4588,15 @@ public class Main {
         }
 
 
-        io.printf("%s\n%s\n", str, solutionEval);
+        io.printf("%s\n%s\n\n", str, solutionEval);
         for (NodePosition pos : solutionPositions) {
             // System.err.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
             io.printf("%d: (%d, %d),\n", pos.id(), pos.x(), pos.y());
         }
+
+        long endTime = System.currentTimeMillis();
+        io.printf("\nTime taken: %.3f s\n", (endTime - startTime) / 1000.);
+
         for (NodePosition pos : solutionPositions) {
             // System.err.printf("%d %d ", pos.x(), pos.y());
             io.printf("%d %d ", pos.x(), pos.y());
@@ -4596,6 +4606,9 @@ public class Main {
             io.printf("%d: (%d, %d), ", pos.id(), pos.x(), pos.y());
         }
         io.println();
+
+        System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
+
         {
             for (int i = 0; i < n; i++) {
                 VarNodePosition pos = varPos.get(nodes.get(i));
@@ -4618,10 +4631,6 @@ public class Main {
             // System.err.printf("%s%s%s%s%s%s%s\n", f3, f2, f2a, f1, f1a, f4, f4a);
             io.printf("%s%s%s%s%s%s%s\n", f3, f2, f2a, f1, f1a, f4, f4a);
         }
-        long endTime = System.currentTimeMillis();
-        io.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
-        System.err.printf("Time taken: %.3f s\n", (endTime - startTime) / 1000.);
-
 
         io.close();
     }
@@ -4633,7 +4642,8 @@ public class Main {
             if (newDirectory.mkdir()) {
                 System.out.println("Directory: " + dir + " created");
                 // for (int i = 5; i < 10; i++) test1(i);
-                Integer[] tests = {5, 6, 7, 8, 9};
+                // Integer[] tests = {5, 6, 7, 8, 9};
+                Integer[] tests = {10, 11, 12, 13, 14};
                 // Integer[] tests = {5};
                 for (int i : tests) test1(i);
             } else {
