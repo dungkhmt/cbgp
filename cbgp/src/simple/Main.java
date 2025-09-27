@@ -845,6 +845,251 @@ class TreeMultiset<T extends Comparable<T>> implements Iterable<T> {
         return map.entrySet();
     }
 }
+
+class EdgeLengthVariance implements Function {
+    int numEdge;
+    Graph g;
+    List<List<Edge>> adj;
+    Map<Node, VarNodePosition> positions;
+    Map<Integer, Double> distances;
+    double sumSquare, sum;
+
+    @Override
+    public String toString() {
+        return "Var(edgeLength)=" + evaluation() + " ";
+    }
+
+    private int encode(Edge e) {
+        int u = Math.min(e.fromNode.id, e.toNode.id);
+        int v = Math.max(e.fromNode.id, e.toNode.id);
+        return u * g.getNodes().size() + v;
+    }
+
+    public EdgeLengthVariance(Graph g, Map<Node, VarNodePosition> positions) {
+        this.g = g;
+        this.positions = positions;
+        distances = new HashMap<>();
+        sumSquare = 0;
+        sum = 0;
+
+        adj = new ArrayList<>();
+        Map<Integer, Boolean> marked = new HashMap<>();
+        for (Node node : g.getNodes()) {
+            adj.add(new ArrayList<>());
+            for (Edge e : g.getEdges(node)) {
+                int eId = encode(e);
+                if (marked.containsKey(eId)) continue;
+                marked.put(eId, true);
+                numEdge++;
+                adj.get(node.id).add(e);
+            }
+            marked.clear();
+        }
+
+        for (Node node: g.getNodes()){
+            for(Edge e: adj.get(node.id)){
+                int eId = encode(e);
+                if (distances.containsKey(eId)) continue;
+                Node u = e.fromNode, v = e.toNode;
+                VarNodePosition posU = positions.get(u), posV = positions.get(v);
+                if (posU.x() == -1 || posU.y() == -1 || posV.x() == -1 || posV.y() == -1) continue;
+                double d = Geometry.distance(posU.x(), posU.y(), posV.x(), posV.y());
+                distances.put(eId, d);
+                sum += d;
+                sumSquare += d * d;
+            }
+        }
+    }
+
+    @Override
+    public double evaluation() {
+        return numEdge == 0 ? 0 : -(sumSquare * numEdge - sum * sum) / (numEdge * numEdge);
+    }
+
+    @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        int oldX = varNodePosition.x(), oldY = varNodePosition.y();
+        if (oldX == newX && oldY == newY) {
+            return evaluation();
+        }
+        if (newX == -1 && newY == -1) {
+            Node node = g.getNode(varNodePosition.id);
+            double currentSum = sum, currentSumSquare = sumSquare;
+            for (Edge e : adj.get(node.id)) {
+                Node u = e.getRemaining(node);
+                VarNodePosition posU = positions.get(u);
+                if (posU.x() == -1 || posU.y() == -1) continue;
+                double d = distances.getOrDefault(encode(e), -1.);
+                if (d > -1.) {
+                    currentSum -= d;
+                    currentSumSquare -= d * d;
+                }
+            }
+            return numEdge == 0 ? 0 : -(currentSumSquare * numEdge - currentSum * currentSum) / (numEdge * numEdge);
+        }
+
+        Node node = g.getNode(varNodePosition.id);
+        double currentSum = sum, currentSumSquare = sumSquare;
+        for (Edge e : adj.get(node.id)) {
+            Node u = e.getRemaining(node);
+            VarNodePosition posU = positions.get(u);
+            if (posU.x() == -1 || posU.y() == -1) continue;
+            double oldD = distances.getOrDefault(encode(e), -1.);
+            if (oldD > -1.) {
+                currentSum -= oldD;
+                currentSumSquare -= oldD * oldD;
+            }
+            double d = Geometry.distance(posU.x(), posU.y(), newX, newY);
+            currentSum += d;
+            currentSumSquare += d * d;
+        }
+
+        return numEdge == 0 ? 0 : -(currentSumSquare * numEdge - currentSum * currentSum) / (numEdge * numEdge);
+    }
+
+    @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        if (newX == -1 && newY == -1) return;
+        int oldX = varNodePosition.x(), oldY = varNodePosition.y();
+
+        if (oldX == newX && oldY == newY) return;
+        Node node = g.getNode(varNodePosition.id);
+
+        for (Edge e : adj.get(node.id)) {
+            Node u = e.getRemaining(node);
+            VarNodePosition posU = positions.get(u);
+            if (posU.x() == -1 || posU.y() == -1) continue;
+            double d = Geometry.distance(posU.x(), posU.y(), newX, newY);
+
+            int eId = encode(e);
+            double oldDistance = distances.getOrDefault(eId, -1.);
+            if (oldDistance > -1) {
+                if (Math.abs(oldDistance - d) < Point2D.eps) {
+                    continue;
+                }
+                sum -= oldDistance;
+                sumSquare -= oldDistance * oldDistance;
+            }
+            distances.put(eId, d);
+            sum += d;
+            sumSquare += d * d;
+        }
+    }
+
+    @Override
+    public void initPropagation() {
+
+    }
+}
+
+class NodePosVariance implements Function {
+    Graph g;
+    Map<Node, VarNodePosition> positions;
+    Map<Integer, Double> distances;
+    double sumSquareX, sumX, sumSquareY, sumY;
+    int numNode;
+
+    @Override
+    public String toString() {
+        return "Var(nodePos)=" + evaluation() + " ";
+    }
+
+    public NodePosVariance(Graph g, Map<Node, VarNodePosition> positions) {
+        this.g = g;
+        this.positions = positions;
+        distances = new HashMap<>();
+        sumSquareX = 0;
+        sumX = 0;
+        sumSquareY = 0;
+        sumY = 0;
+        numNode = 0;
+
+        for (Node node: g.getNodes()){
+            VarNodePosition pos = positions.get(node);
+            if (pos.x() == -1 || pos.y() == -1) continue;
+            numNode++;
+            sumX += pos.x();
+            sumSquareX += pos.x() * pos.x();
+            sumY += pos.y();
+            sumSquareY += pos.y() * pos.y();
+        }
+    }
+
+    @Override
+    public double evaluation() {
+        return numNode == 0 ? 0 : -((sumSquareX * numNode - sumX * sumX) + (sumSquareY * numNode - sumY * sumY)) / (numNode * numNode);  
+    }
+
+    @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        int oldX = varNodePosition.x(), oldY = varNodePosition.y();
+        if (oldX == newX && oldY == newY) {
+            return evaluation();
+        }
+        if (newX == -1 && newY == -1) {
+            double currentSumX = sumX, currentSumSquareX = sumSquareX;
+            double currentSumY = sumY, currentSumSquareY = sumSquareY;
+            currentSumX -= oldX;
+            currentSumSquareX -= oldX * oldX;
+            currentSumY -= oldY;
+            currentSumSquareY -= oldY * oldY;
+            return numNode == 0 ? 0 : -((currentSumSquareX * numNode - currentSumX * currentSumX) + (currentSumSquareY * numNode - currentSumY * currentSumY)) / (numNode * numNode);
+        }
+
+        double currentSumX = sumX, currentSumSquareX = sumSquareX;
+        double currentSumY = sumY, currentSumSquareY = sumSquareY;
+        if (oldX != -1) {
+            currentSumX -= oldX;
+            currentSumSquareX -= oldX * oldX;
+        } 
+        if (oldY != -1) {
+            currentSumY -= oldY;
+            currentSumSquareY -= oldY * oldY;
+        }
+
+        if (newX != -1) {
+            currentSumX += newX;
+            currentSumSquareX += newX * newX;
+        }
+        if (newY != -1) {
+            currentSumY += newY;
+            currentSumSquareY += newY * newY;
+        }
+
+        return numNode == 0 ? 0 : -((currentSumSquareX * numNode - currentSumX * currentSumX) + (currentSumSquareY * numNode - currentSumY * currentSumY)) / (numNode * numNode);
+    }
+
+    @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        if (newX == -1 && newY == -1) return;
+        int oldX = varNodePosition.x(), oldY = varNodePosition.y();
+        if (oldX == newX && oldY == newY) return;
+
+        if (oldX != -1) {
+            sumX -= oldX;
+            sumSquareX -= oldX * oldX;
+        } 
+        if (oldY != -1) {
+            sumY -= oldY;
+            sumSquareY -= oldY * oldY;
+        }
+
+        if (newX != -1) {
+            sumX += newX;
+            sumSquareX += newX * newX;
+        }
+        if (newY != -1) {
+            sumY += newY;
+            sumSquareY += newY * newY;
+        }
+    }
+
+    @Override
+    public void initPropagation() {
+
+    }
+}
+
 class SumDistanceEdge implements Function{
     double sumDistance = 0;
     Graph g;
@@ -901,16 +1146,31 @@ class SumDistanceEdge implements Function{
 
     @Override
     public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
-        if (newX == -1 && newY == -1) return evaluation();
         int oldX = varNodePosition.x(), oldY = varNodePosition.y();
         if (oldX == newX && oldY == newY) {
             return evaluation();
         }
+        if (newX == -1 && newY == -1) {
+            Node node = g.getNode(varNodePosition.id);
+            double current = sumDistance;
+            for (Edge e : adj.get(node.id)) {
+                Node u = e.getRemaining(node);
+                VarNodePosition posU = positions.get(u);
+                if (posU.x() == -1 || posU.y() == -1) continue;
+                double d = distances.getOrDefault(encode(e), -1.);
+                if (d > -1.) {
+                    current -= d;
+                }
+            }
+            return current;
+        }
+
         Node node = g.getNode(varNodePosition.id);
         double current = sumDistance;
         for (Edge e : adj.get(node.id)) {
             Node u = e.getRemaining(node);
             VarNodePosition posU = positions.get(u);
+            if (posU.x() == -1 || posU.y() == -1) continue;
             double oldD = distances.getOrDefault(encode(e), -1.);
             if (oldD > -1.) {
                 current -= oldD;
@@ -1031,11 +1291,30 @@ class MinDistanceEdge implements Function{
 
     @Override
     public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
-        if (newX == -1 && newY == -1) return evaluation();
+        // if (newX == -1 && newY == -1) return evaluation();
         int oldX = varNodePosition.x(), oldY = varNodePosition.y();
         if (oldX == newX && oldY == newY) {
 //            System.err.printf("spec (%d %d %f)", oldX, oldY, evaluation());
             return evaluation();
+        }
+        if (newX == -1 && newY == -1) {
+            Node node = g.getNode(varNodePosition.id);
+            TreeMultiset<Double> visited = new TreeMultiset<>(new DoubleCompare());
+            for (Edge e : adj.get(node.id)) {
+                Node u = e.getRemaining(node);
+                VarNodePosition posU = positions.get(u);
+                if (posU.x() == -1 || posU.y() == -1) continue;
+                double d = distances.getOrDefault(encode(e), -1.);
+                if (d > -1.) {
+                    visited.add(d);
+                }
+            }
+            for (Double d : pq) {
+                if (!visited.remove(d)) {
+                    return d;
+                }
+            }
+            return Double.POSITIVE_INFINITY;
         }
         double min = Double.POSITIVE_INFINITY;
         Node node = g.getNode(varNodePosition.id);
@@ -1310,8 +1589,15 @@ class SumAngle implements Function {
         Node node = g.getNode(v.id);
         int oldX = v.x(), oldY = v.y();
         
-        if (oldX == newX && oldY == newY || newX == -1 && newY == -1) {
+        if (oldX == newX && oldY == newY) {
             return evaluation();
+        }
+        if (newX == -1 && newY == -1) {
+            double current = sumAngleValue;
+            if (nodeNeighbors.get(node).size() > 1) {
+                current -= angles.get(node.id).first();
+            }
+            return current;
         }
 
         updateNodeAngles(node, newX, newY);
@@ -1608,8 +1894,29 @@ class MinAngle implements Function {
         Node node = g.getNode(v.id);
         int oldX = v.x(), oldY = v.y();
         
-        if (oldX == newX && oldY == newY || newX == -1 && newY == -1) {
+        if (oldX == newX && oldY == newY) {
             return evaluation();
+        }
+        if (newX == -1 && newY == -1) {
+            TreeMultiset<Double> visited = new TreeMultiset<>(new DoubleCompare());
+            TreeSet<NodeAngle> neighbors = nodeNeighbors.get(node);
+            if (neighbors == null || neighbors.size() < 2) {
+                return evaluation();
+            }
+
+            List<NodeAngle> neighborList = new ArrayList<>(neighbors);
+            for (int i = 0; i < neighborList.size(); i++) {
+                NodeAngle current = neighborList.get(i);
+                NodeAngle next = neighborList.get((i + 1) % neighborList.size());
+                double angle = (next.angle - current.angle + 2 * Math.PI) % (2 * Math.PI);
+                visited.add(angle);
+            }
+            for (Double angle : allAngles) {
+                if (!visited.remove(angle)) {
+                    return angle;
+                }
+            }
+            return Double.POSITIVE_INFINITY;
         }
 
         updateNodeAngles(node, newX, newY);
@@ -1851,9 +2158,6 @@ class NumberIntersectionEdges implements Function{
 
     @Override
     public double evaluateOneNodeMove(VarNodePosition v, int newX, int newY) {
-        if (newX == -1 && newY == -1) {
-            return evaluation();
-        }
 
         Node node = g.getNode(v.id);
         int oldX = v.x(), oldY = v.y();
@@ -1861,7 +2165,16 @@ class NumberIntersectionEdges implements Function{
         if (oldX == newX && oldY == newY) {
             return evaluation();
         }
-        
+
+        if (newX == -1 && newY == -1) {
+            int current = totalIntersections;
+            for (Edge e : adj.get(node.id)) {
+                Set<Integer> intersectedEdges = intersectMap.get(encode(e));
+                current -= intersectedEdges.size();
+            }
+            return -current;
+        }
+
         int currentIntersections = 0;
 //        List<Edge> nodeEdges = g.getEdges(node);
         List<Edge> nodeEdges = adj.get(node.id);
@@ -2102,9 +2415,36 @@ class SumDistanceNodeEdge implements Function {
     @Override
     public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
         int oldX = varNodePosition.x(), oldY = varNodePosition.y();
-        if (newX == -1 && newY == -1) return evaluation();
+        // if (newX == -1 && newY == -1) return evaluation();
         if (oldX == newX && oldY == newY) {
             return evaluation();
+        }
+        if (newX == -1 && newY == -1) {
+            double newSumDistance = sumDistance;
+            Node node = g.getNode(varNodePosition.id);
+            for (Edge edge : edges) {
+                if (edge.fromNode.id == node.id || edge.toNode.id == node.id) continue;
+                long key = encode(node, edge);
+                double oldD = distances.getOrDefault(key, -1.);
+                if (oldD > -1.) {
+                    newSumDistance -= oldD;
+                }
+            }
+
+            for (Node adjNode : g.getNodes()) {
+                if (adjNode.id == node.id) continue;
+                VarNodePosition pos = positions.get(adjNode);
+                if (pos.x() == -1 || pos.y() == -1) continue;
+                for (Edge edge : adj.get(node.id)) {
+                    if (edge.toNode.id == adjNode.id) continue;
+                    long key = encode(adjNode, edge);
+                    double oldD = distances.getOrDefault(key, -1.);
+                    if (oldD > -1.) {
+                        newSumDistance -= oldD;
+                    }
+                }
+            }
+            return newSumDistance;
         }
         Node node = g.getNode(varNodePosition.id);
         double newSumDistance = sumDistance;
@@ -2318,10 +2658,43 @@ class MinDistanceNodeEdge implements Function {
     @Override
     public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
         int oldX = varNodePosition.x(), oldY = varNodePosition.y();
-        if (newX == -1 && newY == -1) return evaluation();
         if (oldX == newX && oldY == newY) {
             return evaluation();
         }
+        if (newX == -1 && newY == -1) {
+            TreeMultiset<Double> visited = new TreeMultiset<>(new DoubleCompare());
+            Node node = g.getNode(varNodePosition.id);
+            for (Edge edge : edges) {
+                if (edge.fromNode.id == node.id || edge.toNode.id == node.id) continue;
+                long key = encode(node, edge);
+                double oldD = distances.getOrDefault(key, -1.);
+                if (oldD > -1.) {
+                    visited.add(oldD);
+                }
+            }
+
+            for (Node adjNode : g.getNodes()) {
+                if (adjNode.id == node.id) continue;
+                VarNodePosition pos = positions.get(adjNode);
+                if (pos.x() == -1 || pos.y() == -1) continue;
+                for (Edge edge : adj.get(node.id)) {
+                    if (edge.toNode.id == adjNode.id) continue;
+                    long key = encode(adjNode, edge);
+                    double oldD = distances.getOrDefault(key, -1.);
+                    if (oldD > -1.) {
+                        visited.add(oldD);
+                    }
+                }
+            }
+
+            for (Double d : pq) {
+                if (!visited.remove(d)) {
+                    return d;
+                }
+            }
+            return Double.POSITIVE_INFINITY;
+        }
+
         double min = Double.POSITIVE_INFINITY;
         Node node = g.getNode(varNodePosition.id);
 //        List<Edge> edges = g.getEdges(node);
@@ -3697,6 +4070,83 @@ class ThreeRandomExchange implements NeighborExplorer {
     }
 }
 
+class MinRegretNode implements NeighborExplorer {
+    private final int ROW, COL;
+    private final Graph G;
+    private final CBLSGPModel model;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public MinRegretNode(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+
+        this.COL = COL;
+        this.ROW = ROW;
+        this.G = G;
+        this.model = model;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+        LexMultiValues values = F.evaluation();
+        LexMultiValues worseValues = null;
+        VarNodePosition worseNode = null;
+        for (VarNodePosition N : varNodeList) {
+            LexMultiValues current = F.evaluateOneNodeMove(N, -1, -1);
+            if (worseValues == null || worseValues.better(current)) {
+                worseValues = current;
+                worseNode = N;
+            }
+        }
+
+        if (worseNode != null) {
+            List<Pair<Integer, Integer>> positions = new ArrayList<>();
+            int oldX = worseNode.x(), oldY = worseNode.y();
+            for (int newX = 0; newX <= COL; newX++) {
+                for (int newY = 0; newY <= ROW; newY++) {
+                    if (newX == oldX && newY == oldY) continue;
+                    positions.add(new Pair<>(newX, newY));
+                }
+            }
+            Collections.shuffle(positions, new Random());
+            // for (int newX = 0; newX <= COL; newX++) {
+            //     for (int newY = 0; newY <= ROW; newY++) {
+            //         if (newX == oldX && newY == oldY) continue;
+            int iteration = 0;
+            for (Pair<Integer, Integer> pos : positions) {
+                int newX = pos.a, newY = pos.b;
+                    LexMultiValues current = F.evaluateOneNodeMove(worseNode, newX, newY);
+                    Move move = new Move(worseNode, newX, newY, current);
+                    if (current.better(values)) {
+                        if (firstImprovement) {
+                            moves.add(move);
+                            return move;
+                        }
+                        moves.clear();
+                        moves.add(move);
+                        values = current;
+                    }
+                    else if (current.equals(values)) {
+                        moves.add(move);
+                    }
+                if (++iteration >= counter) {
+                    break;
+                }
+                // }
+            }
+        }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(new Random().nextInt(moves.size()));
+    }
+}
+
 class PQTree {
     private int n, root, tot, top;
     private int[] pool, type, color;
@@ -4446,6 +4896,8 @@ public class Main {
 
 
         NumberIntersectionEdges F3 = new NumberIntersectionEdges(G,varPos);// to be minimized
+        EdgeLengthVariance F5 = new EdgeLengthVariance(G,varPos);// to be minimized
+        NodePosVariance F6 = new NodePosVariance(G,varPos);// to be minimized
         MinAngle F2 = new MinAngle(G,varPos);// to be maximized
         SumAngle F2a = new SumAngle(G,varPos);// to be maximized
         MinDistanceEdge F1 = new MinDistanceEdge(G,varPos);// to be maximized
@@ -4457,8 +4909,10 @@ public class Main {
         F0.add(F3);
         LexMultiFunctions F = new LexMultiFunctions();
         F.add(F3);
-        F.add(F4);
         F.add(F2);
+        F.add(F5);
+        F.add(F4);
+        F.add(F6);
         F.add(F2a);
         F.add(F4a);
         F.add(F1);
@@ -4488,6 +4942,7 @@ public class Main {
         boolean firstImprovement = true;
         List<NeighborExplorer> explorers = new ArrayList<>();
         final int numRandom = 100;
+        explorers.add(new MinRegretNode(ROW, COL, G, model, F, varPosList, numRandom * 2));
         explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, numRandom));
         explorers.add(new OneRandomMove(ROW, COL, G, F, varPosList, numRandom));
         explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, numRandom));
