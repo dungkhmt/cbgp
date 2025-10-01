@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.security.KeyStore.Entry;
 // import javax.security.auth.kerberos.KeyTab;
 // import javax.swing.text.Segment;
 import java.util.ArrayList;
@@ -239,6 +240,7 @@ class Point2D {
     }
 
     public int countCoincide(List<Point2D> points, Point2D point) {
+        @SuppressWarnings("unused")
         int n = points.size();
         double v = Math.atan2(point.getY() - y, point.getX() - x);
         int cnt = 0;
@@ -280,7 +282,7 @@ class Line2D {
 
     public Point2D intersect(Line2D line) {
         double d = a * line.b - line.a * b;
-        if (d == 0) {
+        if (Math.abs(d) < Point2D.eps) {
             if (b * line.c == line.b * c || a * line.c == line.a * c) {
                 return Point2D.infPoint;
             }
@@ -880,7 +882,6 @@ class EdgeLengthVariance implements Function {
                 int eId = encode(e);
                 if (marked.containsKey(eId)) continue;
                 marked.put(eId, true);
-                numEdge++;
                 adj.get(node.id).add(e);
             }
             marked.clear();
@@ -895,6 +896,7 @@ class EdgeLengthVariance implements Function {
                 if (posU.x() == -1 || posU.y() == -1 || posV.x() == -1 || posV.y() == -1) continue;
                 double d = Geometry.distance(posU.x(), posU.y(), posV.x(), posV.y());
                 distances.put(eId, d);
+                numEdge++;
                 sum += d;
                 sumSquare += d * d;
             }
@@ -1422,6 +1424,7 @@ class SumAngle implements Function {
     Map<Node, TreeSet<NodeAngle>> nodeNeighbors = new HashMap<>();
     Map<Integer, Map<Integer, NodeAngle>> nodeAngleMap = new HashMap<>();
     List<TreeMultiset<Double>> angles = new ArrayList<>();
+    // List<List<Double>> angles = new ArrayList<>();
     double sumAngleValue = 0.0;
 
     @Override
@@ -1465,6 +1468,7 @@ class SumAngle implements Function {
             nodeAngleMap.put(node.id, new HashMap<>());
             nodeNeighbors.put(node, new TreeSet<>());
             angles.add(new TreeMultiset<>(new DoubleCompare()));
+            // angles.add(new ArrayList<>());
             adj.add(new ArrayList<>());
             for (Edge e : g.getEdges(node)) {
                 int u = Math.min(e.fromNode.id, e.toNode.id);
@@ -1488,8 +1492,12 @@ class SumAngle implements Function {
 
         TreeSet<NodeAngle> neighbors = nodeNeighbors.get(node);
         TreeMultiset<Double> angleN = angles.get(node.id);
+        // List<Double> angleN = angles.get(node.id);
         if (neighbors.size() > 1) {
-            sumAngleValue -= angleN.first();
+            // sumAngleValue -= Math.pow(Math.sin(angleN.first()), 2);
+            for (double angle : angleN) {
+                sumAngleValue -= Math.pow(Math.sin(angle), 2);
+            }
             angleN.clear();
         }
         
@@ -1516,7 +1524,10 @@ class SumAngle implements Function {
                 angleN.add(angle);
             }
 
-            sumAngleValue += angleN.first();
+            // sumAngleValue += Math.pow(Math.sin(angleN.first()), 2);
+            for (double angle : angleN) {
+                sumAngleValue += Math.pow(Math.sin(angle), 2);
+            }
         }
     }
     
@@ -1531,9 +1542,14 @@ class SumAngle implements Function {
         }
 
         TreeMultiset<Double> angleN = angles.get(node.id);
+        // List<Double> angleN = angles.get(node.id);
         if (oldNodeAngle != null) {
             if (!angleN.isEmpty()) {
-                sumAngleValue -= angleN.first();
+                // sumAngleValue -= angleN.first();
+                // sumAngleValue -= Math.pow(Math.sin(angleN.first()), 2);
+                for (double angle : angleN) {
+                    sumAngleValue -= Math.pow(Math.sin(angle), 2);
+                }
             }
             if (neighbors.size() > 1) {
                 NodeAngle prev = neighbors.lower(oldNodeAngle);
@@ -1575,7 +1591,11 @@ class SumAngle implements Function {
                 angleN.remove(prevNextAngle);
             }
 
-            sumAngleValue += angleN.first();
+            // sumAngleValue += angleN.first();
+            // sumAngleValue += Math.pow(Math.sin(angleN.first()), 2);
+            for (double angle : angleN) {
+                sumAngleValue += Math.pow(Math.sin(angle), 2);
+            }
         }
     }
 
@@ -1595,7 +1615,11 @@ class SumAngle implements Function {
         if (newX == -1 && newY == -1) {
             double current = sumAngleValue;
             if (nodeNeighbors.get(node).size() > 1) {
-                current -= angles.get(node.id).first();
+                // current -= angles.get(node.id).first();
+                // current -= Math.pow(Math.cos(angles.get(node.id).first()), 2);
+                for (double angle : angles.get(node.id)) {
+                    current -= Math.pow(Math.sin(angle), 2);
+                }
             }
             return current;
         }
@@ -2317,6 +2341,141 @@ class Distance2Nodes implements Function {
     @Override
     public String toString() {
         return "distance=" + value + " ";
+    }
+}
+
+class MinDistance2Nodes implements Function {
+    private final int n;
+    private final List<VarNodePosition> positions;
+    private double minDistance = Double.POSITIVE_INFINITY;
+    private TreeMultiset<Double> pq;
+
+    public MinDistance2Nodes(Map<Node, VarNodePosition> varPos) {
+        this.positions = new ArrayList<>();
+        for (Map.Entry<Node, VarNodePosition> entry : varPos.entrySet()) {
+            this.positions.add(entry.getValue());
+        }
+
+        pq = new TreeMultiset<Double>(new DoubleCompare());
+        this.n = positions.size();
+        for (int i = 0; i < n; i++) {
+            VarNodePosition pos1 = positions.get(i);
+            if (pos1.x() == -1 && pos1.y() == -1) continue;
+            for (int j = i + 1; j < n; j++) {
+                VarNodePosition pos2 = positions.get(j);
+                if (pos2.x() == -1 && pos2.y() == -1) continue;
+                double dx = pos1.x() - pos2.x();
+                double dy = pos1.y() - pos2.y();
+                pq.add(Math.sqrt(dx * dx + dy * dy));
+            }
+        }
+        if (!pq.isEmpty()) {
+            minDistance = pq.first();
+        }
+    }
+
+    @Override
+    public double evaluation() {
+        return minDistance;
+    }
+
+    @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        int oldX = varNodePosition.x(), oldY = varNodePosition.y();
+        if (oldX == newX && oldY == newY) {
+            return evaluation();
+        }
+
+        if (oldX == -1 && oldY == -1) {
+            TreeMultiset<Double> visited = new TreeMultiset<>(new DoubleCompare());
+            for (VarNodePosition pos : positions) {
+                if (pos.x() == -1 && pos.y() == -1) continue;
+                double dx = pos.x() - oldX;
+                double dy = pos.y() - oldY;
+                double dist = Math.sqrt(dx * dx + dy * dy);
+                visited.add(dist);
+            }
+            for (Double dist : pq) {
+                if (!visited.remove(dist)) {
+                    return dist;
+                }
+            }
+            return Double.POSITIVE_INFINITY;
+        }
+        double d = Double.POSITIVE_INFINITY;
+        TreeMultiset<Double> visited = new TreeMultiset<>(new DoubleCompare());
+        for (VarNodePosition pos1 : positions) {
+            if (pos1.id == varNodePosition.id) continue;
+            if (pos1.x() == -1 && pos1.y() == -1) continue;
+            double dx = newX - pos1.x();
+            double dy = newY - pos1.y();
+            double dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < d) d = dist;
+            dx = oldX - pos1.x();
+            dy = oldY - pos1.y();
+            visited.add(Math.sqrt(dx * dx + dy * dy));
+        }
+        for (Double dist : pq) {
+            if (d - Point2D.eps < dist) {
+                return d;
+            }
+            if (!visited.remove(dist)) {
+                return dist;
+            }
+        }
+        return Double.POSITIVE_INFINITY;
+    }
+
+    @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+
+        int oldX = varNodePosition.x(), oldY = varNodePosition.y();
+        if (oldX == newX && oldY == newY) return;
+        if (newX == -1 && newY == -1) {
+            for (VarNodePosition pos : positions) {
+                if (pos.x() == -1 && pos.y() == -1) continue;
+                double dx = pos.x() - oldX;
+                double dy = pos.y() - oldY;
+                double dist = Math.sqrt(dx * dx + dy * dy);
+                pq.remove(dist);
+            }
+            if (!pq.isEmpty()) {
+                minDistance = pq.first();
+            } else {
+                minDistance = Double.POSITIVE_INFINITY;
+            }
+            return;
+        }
+
+        for (VarNodePosition pos1 : positions) {
+            if (pos1.id == varNodePosition.id) continue;
+            if (pos1.x() == -1 && pos1.y() == -1) continue;
+            if (oldX != -1 && oldY != -1) {
+                double dx = oldX - pos1.x();
+                double dy = oldY - pos1.y();
+                double dist = Math.sqrt(dx * dx + dy * dy);
+                pq.remove(dist);
+            }
+            double dx = newX - pos1.x();
+            double dy = newY - pos1.y();
+            pq.add(Math.sqrt(dx * dx + dy * dy));
+        }
+
+        if (!pq.isEmpty()) {
+            minDistance = pq.first();
+        } else {
+            minDistance = Double.POSITIVE_INFINITY;
+        }
+    }
+
+    @Override
+    public void initPropagation() {
+
+    }
+
+    @Override
+    public String toString() {
+        return "minDistance2Nodes=" + minDistance + " ";
     }
 }
 
@@ -3540,36 +3699,38 @@ class OneRandomNeighborhood implements NeighborExplorer {
             while (iterations-- > 0) {
                 int i = random.nextInt(G.getNodes().size());
                 VarNodePosition varNodePosition = varNodeList.get(i);
-                // int d = random.nextInt(2) + 1;
-                int d = 1;
-                int LX = Math.max(0, varNodePosition.x() - d);
-                int RX = Math.min(COL, varNodePosition.x() + d);
-                int LY = Math.max(0, varNodePosition.y() - d);
-                int RY = Math.min(ROW, varNodePosition.y() + d);
-                // int newX = random.nextInt(RX - LX + 1) + LX;
-                // int newY = random.nextInt(RY - LY + 1) + LY;
                 boolean found = false;
+                // int d = random.nextInt(2) + 1;
+                int d = 2;
+                // for (int d = 1; d < 4 && !found; d++) {
+                    int LX = Math.max(0, varNodePosition.x() - d);
+                    int RX = Math.min(COL, varNodePosition.x() + d);
+                    int LY = Math.max(0, varNodePosition.y() - d);
+                    int RY = Math.min(ROW, varNodePosition.y() + d);
+                    // int newX = random.nextInt(RX - LX + 1) + LX;
+                    // int newY = random.nextInt(RY - LY + 1) + LY;
 
-                for (int newX = LX; newX <= RX && !found; newX++) {
-                    for (int newY = LY; newY <= RY && !found; newY++) {
-                        if (newX == varNodePosition.x() && newY == varNodePosition.y()) continue;
-                        LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
-                        Move move = new Move(varNodePosition, newX, newY, current);
-                        if (current.better(values)) {
-                            if (firstImprovement) {
+                    for (int newX = LX; newX <= RX && !found; newX++) {
+                        for (int newY = LY; newY <= RY && !found; newY++) {
+                            if (newX == varNodePosition.x() && newY == varNodePosition.y()) continue;
+                            LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
+                            Move move = new Move(varNodePosition, newX, newY, current);
+                            if (current.better(values)) {
+                                if (firstImprovement) {
+                                    moves.add(move);
+                                    found = true;
+                                    break;
+                                }
+                                moves.clear();
                                 moves.add(move);
-                                found = true;
-                                break;
+                                values = current;
                             }
-                            moves.clear();
-                            moves.add(move);
-                            values = current;
-                        }
-                        else if (current.equals(values)) {
-                            moves.add(move);
+                            else if (current.equals(values)) {
+                                moves.add(move);
+                            }
                         }
                     }
-                }
+                // }
                 if (found) break;
             }
 
@@ -3858,7 +4019,7 @@ class TwoRandomNeighborhood implements NeighborExplorer {
                 int oldX1 = N1.x();
                 int oldY1 = N1.y();
                 // int d1 = random.nextInt(2) + 1;
-                int d1 = 1;
+                int d1 = 3;
 
                 int LX1 = Math.max(0, oldX1 - d1);
                 int RX1 = Math.min(COL, oldX1 + d1);
@@ -3877,7 +4038,7 @@ class TwoRandomNeighborhood implements NeighborExplorer {
                     // for (int newY1 = LY1; newY1 <= RY1 && !found; newY1++) {
                         // if (newX1 == oldX1 && newY1 == oldY1) continue;
                         // int d2 = random.nextInt(2) + 1;
-                        int d2 = 1;
+                        int d2 = 3;
                         int LX2 = Math.max(0, N2.x() - d2);
                         int RX2 = Math.min(COL, N2.x() + d2);
                         int LY2 = Math.max(0, N2.y() - d2);
@@ -4070,9 +4231,80 @@ class ThreeRandomExchange implements NeighborExplorer {
     }
 }
 
+class AnyNode implements NeighborExplorer {
+    private final int ROW, COL;
+    @SuppressWarnings("unused")
+    private final Graph G;
+    @SuppressWarnings("unused")
+    private final CBLSGPModel model;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public AnyNode(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.COL = COL;
+        this.ROW = ROW;
+        this.G = G;
+        this.model = model;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+        LexMultiValues values = F.evaluation();
+        VarNodePosition node = varNodeList.get(new Random().nextInt(varNodeList.size()));
+        List<Pair<Integer, Integer>> positions = new ArrayList<>();
+        int oldX = node.x(), oldY = node.y();
+        {
+            for (int newX = 0; newX <= COL; newX++) {
+                for (int newY = 0; newY <= ROW; newY++) {
+                    if (newX == oldX && newY == oldY) continue;
+                    positions.add(new Pair<>(newX, newY));
+                }
+            }
+            Collections.shuffle(positions, new Random());
+            // for (int newX = 0; newX <= COL; newX++) {
+            //     for (int newY = 0; newY <= ROW; newY++) {
+            //         if (newX == oldX && newY == oldY) continue;
+            int iteration = 0;
+            for (Pair<Integer, Integer> pos : positions) {
+                int newX = pos.a, newY = pos.b;
+                    LexMultiValues current = F.evaluateOneNodeMove(node, newX, newY);
+                    Move move = new Move(node, newX, newY, current);
+                    if (current.better(values)) {
+                        if (firstImprovement) {
+                            moves.add(move);
+                            return move;
+                        }
+                        moves.clear();
+                        moves.add(move);
+                        values = current;
+                    }
+                    else if (current.equals(values)) {
+                        moves.add(move);
+                    }
+                if (++iteration >= counter) {
+                    break;
+                }
+                // }
+            }
+        }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(new Random().nextInt(moves.size()));
+    }
+}
+
 class MinRegretNode implements NeighborExplorer {
     private final int ROW, COL;
+    @SuppressWarnings("unused")
     private final Graph G;
+    @SuppressWarnings("unused")
     private final CBLSGPModel model;
     private final LexMultiFunctions F;
     private final List<VarNodePosition> varNodeList;
@@ -4093,34 +4325,39 @@ class MinRegretNode implements NeighborExplorer {
     public Move explore(boolean firstImprovement) {
         List<Move> moves = new ArrayList<>();
         LexMultiValues values = F.evaluation();
-        LexMultiValues worseValues = null;
-        VarNodePosition worseNode = null;
+        List<Pair<LexMultiValues, VarNodePosition>> nodeValues = new ArrayList<>();
         for (VarNodePosition N : varNodeList) {
             LexMultiValues current = F.evaluateOneNodeMove(N, -1, -1);
-            if (worseValues == null || worseValues.better(current)) {
-                worseValues = current;
-                worseNode = N;
-            }
+            // if (worseValues == null || worseValues.better(current)) {
+            nodeValues.add(new Pair<>(current, N));
         }
 
-        if (worseNode != null) {
+        Collections.sort(nodeValues, (a, b) -> a.a.better(b.a) ? -1 : a.a.equals(b.a) ? 0 : 1);
             List<Pair<Integer, Integer>> positions = new ArrayList<>();
-            int oldX = worseNode.x(), oldY = worseNode.y();
             for (int newX = 0; newX <= COL; newX++) {
                 for (int newY = 0; newY <= ROW; newY++) {
-                    if (newX == oldX && newY == oldY) continue;
+                    // if (newX == oldX && newY == oldY) continue;
                     positions.add(new Pair<>(newX, newY));
                 }
             }
-            Collections.shuffle(positions, new Random());
+
+        // if (worseNode != null) {
+        Collections.shuffle(positions, new Random());
+        for (int idx = 0; idx < Math.min(2, nodeValues.size()); idx++) {
+            VarNodePosition node = nodeValues.get(idx).b;
+            // int oldX = worseNode.x(), oldY = worseNode.y();
+            int oldX = node.x(), oldY = node.y();
             // for (int newX = 0; newX <= COL; newX++) {
             //     for (int newY = 0; newY <= ROW; newY++) {
             //         if (newX == oldX && newY == oldY) continue;
             int iteration = 0;
             for (Pair<Integer, Integer> pos : positions) {
                 int newX = pos.a, newY = pos.b;
-                    LexMultiValues current = F.evaluateOneNodeMove(worseNode, newX, newY);
-                    Move move = new Move(worseNode, newX, newY, current);
+                if (newX == oldX && newY == oldY) continue;
+                    // LexMultiValues current = F.evaluateOneNodeMove(worseNode, newX, newY);
+                    // Move move = new Move(worseNode, newX, newY, current);
+                    LexMultiValues current = F.evaluateOneNodeMove(node, newX, newY);
+                    Move move = new Move(node, newX, newY, current);
                     if (current.better(values)) {
                         if (firstImprovement) {
                             moves.add(move);
@@ -4675,6 +4912,33 @@ public class Main {
         }
     }
 
+    public static void gridGen() throws IOException {
+        List<Integer> N = List.of(5,7,10);
+        List<Integer> M = List.of(5,7,10);
+
+        int start = 17;
+        for (int c = 0; c < N.size(); c++) {
+            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
+
+            int n = N.get(c), m = M.get(c);
+            int edge = n * (m - 1) + m * (n - 1);
+            io.printf("%d %d\n%d %d\n", n, m, n * m, edge);
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < m; j++) {
+                    int u = i * m + j + 1;
+                    if (i + 1 < n) {
+                        io.printf("%d %d\n", u, u + m);
+                    }
+                    if (j + 1 < m) {
+                        io.printf("%d %d\n", u, u + 1);
+                    }
+                }
+            }
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", start + c, n, m, n * m, edge);
+        }
+    }
+
     public static void ncubesGen() throws IOException {
         List<Integer> N = List.of(4,5,3);
 
@@ -4807,6 +5071,7 @@ public class Main {
 
 
     public static String dir;
+    @SuppressWarnings("unused")
     public static void test1(int tt) throws IOException {
         long startTime = System.currentTimeMillis();
         Kattio io = new Kattio("tests/" + tt + ".in", dir + "/" + tt + ".out");
@@ -4875,6 +5140,7 @@ public class Main {
         int check = 0;
         try {
             check = io.nextInt();
+            // check = 0;
             if (check == 1) {
                 for (int i = 0; i < n; i++) {
                     int x = io.nextInt() * 2;
@@ -4904,19 +5170,21 @@ public class Main {
         SumDistanceEdge F1a = new SumDistanceEdge(G,varPos);// to be maximized
         MinDistanceNodeEdge F4 = new MinDistanceNodeEdge(G,varPos);// to be maximized
         SumDistanceNodeEdge F4a = new SumDistanceNodeEdge(G,varPos);// to be maximized
+        MinDistance2Nodes F7 = new MinDistance2Nodes(varPos);// to be maximized
 
-        LexMultiFunctions F0 = new LexMultiFunctions();
-        F0.add(F3);
+        // LexMultiFunctions F0 = new LexMultiFunctions();
+        // F0.add(F3);
         LexMultiFunctions F = new LexMultiFunctions();
-        F.add(F3);
-        F.add(F2);
-        F.add(F5);
-        F.add(F4);
-        F.add(F6);
-        F.add(F2a);
-        F.add(F4a);
-        F.add(F1);
-        F.add(F1a);
+        F.add(F3); // NumberOfIntersectionEdges
+        F.add(F2); // MinAngle
+        F.add(F5); // EdgeLengthVariance
+        F.add(F2a); // SumAngle
+        F.add(F7); // MinDistance2Nodes
+        F.add(F4); // MinDistanceNodeEdge
+        // F.add(F6); // NodePosVariance
+        // F.add(F1); // MinDistanceEdge
+        // F.add(F4a); // SumDistanceNodeEdge
+        // F.add(F1a); // SumDistanceEdge
 
         model.close();
 
@@ -4942,7 +5210,8 @@ public class Main {
         boolean firstImprovement = true;
         List<NeighborExplorer> explorers = new ArrayList<>();
         final int numRandom = 100;
-        explorers.add(new MinRegretNode(ROW, COL, G, model, F, varPosList, numRandom * 2));
+        explorers.add(new MinRegretNode(ROW, COL, G, model, F, varPosList, numRandom));
+        explorers.add(new AnyNode(ROW, COL, G, model, F, varPosList, numRandom * 2));
         explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, numRandom));
         explorers.add(new OneRandomMove(ROW, COL, G, F, varPosList, numRandom));
         explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, numRandom));
@@ -5003,7 +5272,8 @@ public class Main {
                 //     F.propagateOneNodeMove(v, newX, newY);
                 //     model.move(v, newX, newY);
                 // }
-                if (check == 0 && rnd.nextInt(3) == 0) {
+                // if (check == 1) {
+                if (false) {
                     if (rnd.nextInt(2) == 1) {
                         for (int i = 0; i < n; i++) {
                             X.set(i, COL - X.get(i));
@@ -5089,27 +5359,35 @@ public class Main {
 
         io.close();
     }
+    @SuppressWarnings("unused")
     public static void main(String[] args){
         try {
-            long startTime = System.currentTimeMillis();
-            dir = "tests/" + startTime;
-            File newDirectory = new File(dir);
-            if (newDirectory.mkdir()) {
-                System.out.println("Directory: " + dir + " created");
-                // for (int i = 5; i < 10; i++) test1(i);
-                // Integer[] tests = {5, 6, 7, 8, 9};
-                Integer[] tests = {10, 11, 12, 13, 14};
-                // Integer[] tests = {5};
-                for (int i : tests) test1(i);
-            } else {
-                System.out.println("Directory: " + dir + " not created");
+            //noinspection StatementWithEmptyBody,ConstantValue
+            if (true) {
+                long startTime = System.currentTimeMillis();
+                dir = "tests/" + startTime;
+                File newDirectory = new File(dir);
+                if (newDirectory.mkdir()) {
+                    System.out.println("Directory: " + dir + " created");
+                    // for (int i = 5; i < 10; i++) test1(i);
+                    // Integer[] tests = {5, 6, 7, 8, 9};
+                    // Integer[] tests = {10, 11, 12, 13, 14};
+                    // Integer[] tests = {16};
+                    Integer[] tests = {17, 18, 19};
+                    for (int i : tests) test1(i);
+                } else {
+                    System.out.println("Directory: " + dir + " not created");
+                }
             }
-            // planarGen();
-            // completeGen();
-            // circleGen();
-            // completeBipartiteGen();
-            // wheelGen();
-            // ncubesGen();
+            else {
+                // planarGen();
+                // completeGen();
+                // circleGen();
+                // completeBipartiteGen();
+                // wheelGen();
+                // ncubesGen();
+                // gridGen();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

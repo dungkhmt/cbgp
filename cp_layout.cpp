@@ -383,7 +383,7 @@ int main() {
 	std::cin.tie(nullptr);
 	// start time
 	auto start = std::chrono::high_resolution_clock::now();
-	for (int _ = 10; _ < 15; _++) {
+	for (int _ = 17; _ < 20; _++) {
 		std::stringstream ss; ss << _;
 		// freopen(("tests/" + ss.str() + ".in").c_str(), "r", stdin);
 		std::ifstream in(("tests/" + ss.str() + ".in").c_str());

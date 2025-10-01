@@ -214,3 +214,5 @@ out/production/cbgp/simple/VarIntLS.class
 out/production/cbgp/simple/VarNodePosition.class
 .idea/
 cbgp/src/simple/*.class
+
+include/**
