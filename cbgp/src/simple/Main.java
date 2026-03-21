@@ -1,4 +1,4 @@
-﻿package simple;
+package simple;
 
 import java.io.File;
 import java.io.BufferedOutputStream;
@@ -64,7 +64,10 @@ class Geometry {
         return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
     }
     public static double angle(double x1, double y1, double x2, double y2, double x3, double y3){
-        double cosA = dot(x2 - x1, y2 - y1, x3 - x1, y3 - y1) / distance(x1, y1, x2, y2) / distance(x1, y1, x3, y3);
+        double d1 = distance(x1, y1, x2, y2);
+        double d2 = distance(x1, y1, x3, y3);
+        if (d1 < Point2D.eps || d2 < Point2D.eps) return 0;
+        double cosA = dot(x2 - x1, y2 - y1, x3 - x1, y3 - y1) / d1 / d2;
         return Math.acos(cosA);
     }
     public static double cross(double x1, double y1, double x2, double y2) {
@@ -77,7 +80,7 @@ class Geometry {
 
 class Point2D {
     public static Point2D infPoint = new Point2D(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
-    public static double eps = 1e-9;
+    public static double eps = 1e-12;
     private double x, y;
     public Point2D(double x, double y) {
         this.x = x;
@@ -283,7 +286,7 @@ class Line2D {
     public Point2D intersect(Line2D line) {
         double d = a * line.b - line.a * b;
         if (Math.abs(d) < Point2D.eps) {
-            if (b * line.c == line.b * c || a * line.c == line.a * c) {
+            if (Math.abs(b * line.c - line.b * c) < Point2D.eps && Math.abs(a * line.c - line.a * c) < Point2D.eps) {
                 return Point2D.infPoint;
             }
             return null;
@@ -1195,6 +1198,7 @@ class SumDistanceEdge implements Function{
         for (Edge e : adj.get(node.id)) {
             Node u = e.getRemaining(node);
             VarNodePosition posU = positions.get(u);
+            if (posU.x() == -1 || posU.y() == -1) continue;
             double d = Geometry.distance(posU.x(), posU.y(), newX, newY);
 
             int eId = encode(e);
@@ -1327,6 +1331,7 @@ class MinDistanceEdge implements Function{
             Node u = e.getRemaining(node);
 //            if (node.id >= u.id) continue;
             VarNodePosition posU = positions.get(u);
+            if (posU.x() == -1 || posU.y() == -1) continue;
             double oldD = distances.getOrDefault(encode(e), -1.);
             if (oldD > -1.) {
                 visited.add(oldD);
@@ -1496,7 +1501,8 @@ class SumAngle implements Function {
         if (neighbors.size() > 1) {
             // sumAngleValue -= Math.pow(Math.sin(angleN.first()), 2);
             for (double angle : angleN) {
-                sumAngleValue -= Math.pow(Math.sin(angle), 2);
+                sumAngleValue += Math.pow(Math.cos(angle), 2);
+                // if (angleN.size() == 2) break;
             }
             angleN.clear();
         }
@@ -1526,7 +1532,8 @@ class SumAngle implements Function {
 
             // sumAngleValue += Math.pow(Math.sin(angleN.first()), 2);
             for (double angle : angleN) {
-                sumAngleValue += Math.pow(Math.sin(angle), 2);
+                sumAngleValue -= Math.pow(Math.cos(angle), 2);
+                // if (m == 2) break;
             }
         }
     }
@@ -1548,7 +1555,7 @@ class SumAngle implements Function {
                 // sumAngleValue -= angleN.first();
                 // sumAngleValue -= Math.pow(Math.sin(angleN.first()), 2);
                 for (double angle : angleN) {
-                    sumAngleValue -= Math.pow(Math.sin(angle), 2);
+                    sumAngleValue += Math.pow(Math.cos(angle), 2);
                 }
             }
             if (neighbors.size() > 1) {
@@ -1594,7 +1601,7 @@ class SumAngle implements Function {
             // sumAngleValue += angleN.first();
             // sumAngleValue += Math.pow(Math.sin(angleN.first()), 2);
             for (double angle : angleN) {
-                sumAngleValue += Math.pow(Math.sin(angle), 2);
+                sumAngleValue -= Math.pow(Math.cos(angle), 2);
             }
         }
     }
@@ -1618,7 +1625,7 @@ class SumAngle implements Function {
                 // current -= angles.get(node.id).first();
                 // current -= Math.pow(Math.cos(angles.get(node.id).first()), 2);
                 for (double angle : angles.get(node.id)) {
-                    current -= Math.pow(Math.sin(angle), 2);
+                    current += Math.pow(Math.cos(angle), 2);
                 }
             }
             return current;
@@ -2386,7 +2393,7 @@ class MinDistance2Nodes implements Function {
             return evaluation();
         }
 
-        if (oldX == -1 && oldY == -1) {
+        if (newX == -1 && newY == -1) {
             TreeMultiset<Double> visited = new TreeMultiset<>(new DoubleCompare());
             for (VarNodePosition pos : positions) {
                 if (pos.x() == -1 && pos.y() == -1) continue;
@@ -3502,7 +3509,7 @@ class PlanarGraphGenerator {
         if (m < n - 1) m = n - 1; 
         if (m > n * 3 - 6) m = n * 3 - 6; 
 
-        Random random = new Random();
+        Random random = java.util.concurrent.ThreadLocalRandom.current();
         List<Node> nodes = new ArrayList<>();
         List<Integer> degrees = new ArrayList<>();
         for (int i = 0; i < n; i++) {
@@ -3528,9 +3535,13 @@ class PlanarGraphGenerator {
             if (degrees.get(i) > 1) {
                 // LinkedNode<Integer> node = edge.getFirst();
                 adj.get(i).add(eu);
+                degrees.set(i, degrees.get(i) + 1);
+                degrees.set(j, degrees.get(j) + 1);
                 edge.insert(random.nextInt(edge.size()), ev);
             }
             else {
+                degrees.set(i, degrees.get(i) + 1);
+                degrees.set(j, degrees.get(j) + 1);
                 adj.get(i).add(eu);
                 edge.add(ev);
             }
@@ -3695,10 +3706,12 @@ class OneRandomNeighborhood implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
-            while (iterations-- > 0) {
-                int i = random.nextInt(G.getNodes().size());
-                VarNodePosition varNodePosition = varNodeList.get(i);
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
+            Collections.shuffle(varNodeList, random);
+            int i = 0;
+            while (iterations-- > 0 && i < varNodeList.size()) {
+                // int i = random.nextInt(G.getNodes().size());
+                VarNodePosition varNodePosition = varNodeList.get(i++);
                 boolean found = false;
                 // int d = random.nextInt(2) + 1;
                 int d = 2;
@@ -3741,6 +3754,132 @@ class OneRandomNeighborhood implements NeighborExplorer {
     }
 }
 
+class OneRandomNeighborhoodCOL implements NeighborExplorer {
+    private final int COL;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public OneRandomNeighborhoodCOL(int COL, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.COL = COL;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
+            Collections.shuffle(varNodeList, random);
+            int i = 0;
+            while (iterations-- > 0 && i < varNodeList.size()) {
+                // int i = random.nextInt(G.getNodes().size());
+                VarNodePosition varNodePosition = varNodeList.get(i++);
+                boolean found = false;
+                // int d = random.nextInt(2) + 1;
+                int d = 4;
+                // for (int d = 1; d < 4 && !found; d++) {
+                    int LX = Math.max(0, varNodePosition.x() - d);
+                    int RX = Math.min(COL, varNodePosition.x() + d);
+                    // int newX = random.nextInt(RX - LX + 1) + LX;
+                    // int newY = random.nextInt(RY - LY + 1) + LY;
+
+                    int newY = varNodePosition.y();
+                    for (int newX = LX; newX <= RX && !found; newX++) {
+                            if (newX == varNodePosition.x()) continue;
+                            LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
+                            Move move = new Move(varNodePosition, newX, newY, current);
+                            if (current.better(values)) {
+                                if (firstImprovement) {
+                                    moves.add(move);
+                                    found = true;
+                                    break;
+                                }
+                                moves.clear();
+                                moves.add(move);
+                                values = current;
+                            }
+                            else if (current.equals(values)) {
+                                moves.add(move);
+                            }
+                    }
+                // }
+                if (found) break;
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
+class OneRandomNeighborhoodROW implements NeighborExplorer {
+    private final int ROW;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public OneRandomNeighborhoodROW(int ROW, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.ROW = ROW;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+            int iterations = counter;
+            LexMultiValues values = F.evaluation();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
+            Collections.shuffle(varNodeList, random);
+            int i = 0;
+            while (iterations-- > 0 && i < varNodeList.size()) {
+                // int i = random.nextInt(G.getNodes().size());
+                VarNodePosition varNodePosition = varNodeList.get(i++);
+                boolean found = false;
+                // int d = random.nextInt(2) + 1;
+                int d = 4;
+                // for (int d = 1; d < 4 && !found; d++) {
+                    int newX = varNodePosition.x();
+                    int LY = Math.max(0, varNodePosition.y() - d);
+                    int RY = Math.min(ROW, varNodePosition.y() + d);
+                    // int newX = random.nextInt(RX - LX + 1) + LX;
+                    // int newY = random.nextInt(RY - LY + 1) + LY;
+
+                        for (int newY = LY; newY <= RY && !found; newY++) {
+                            if (newX == varNodePosition.x() && newY == varNodePosition.y()) continue;
+                            LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
+                            Move move = new Move(varNodePosition, newX, newY, current);
+                            if (current.better(values)) {
+                                if (firstImprovement) {
+                                    moves.add(move);
+                                    found = true;
+                                    break;
+                                }
+                                moves.clear();
+                                moves.add(move);
+                                values = current;
+                            }
+                            else if (current.equals(values)) {
+                                moves.add(move);
+                            }
+                        }
+                // }
+                if (found) break;
+            }
+
+        if (moves.isEmpty()) {
+            return null;
+        }
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
 class OneRandomMove implements NeighborExplorer {
     private final int ROW, COL;
     private final Graph G;
@@ -3762,7 +3901,7 @@ class OneRandomMove implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
             while (iterations-- > 0) {
                 int i = random.nextInt(G.getNodes().size());
                 VarNodePosition varNodePosition = varNodeList.get(i);
@@ -3816,13 +3955,13 @@ class OneRandomCOL implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
             while (iterations-- > 0) {
                 int i = random.nextInt(G.getNodes().size());
                 VarNodePosition varNodePosition = varNodeList.get(i);
                 int newX;
                 do {
-                    newX = random.nextInt(COL);
+                    newX = random.nextInt(COL + 1);
                 } while (newX == varNodePosition.x());
                 int newY = varNodePosition.y();
 
@@ -3869,14 +4008,14 @@ class OneRandomROW implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
             while (iterations-- > 0) {
                 int i = random.nextInt(G.getNodes().size());
                 VarNodePosition varNodePosition = varNodeList.get(i);
                 int newX = varNodePosition.x();
                 int newY;
                 do {
-                    newY = random.nextInt(ROW);
+                    newY = random.nextInt(ROW + 1);
                 } while (newY == varNodePosition.y());
 
                 LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
@@ -3925,7 +4064,7 @@ class TwoRandomMove implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
             while (iterations-- > 0) {
                 int i1 = random.nextInt(G.getNodes().size()), i2;
                 do {
@@ -4006,7 +4145,7 @@ class TwoRandomNeighborhood implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
             while (iterations-- > 0) {
                 int i1 = random.nextInt(G.getNodes().size()), i2;
                 do {
@@ -4109,7 +4248,7 @@ class TwoRandomSwap implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
             while (iterations-- > 0) {
                 int i1 = random.nextInt(G.getNodes().size()), i2;
                 do {
@@ -4175,7 +4314,7 @@ class ThreeRandomExchange implements NeighborExplorer {
         List<Move> moves = new ArrayList<>();
             int iterations = counter;
             LexMultiValues values = F.evaluation();
-            Random random = new Random();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
             while (iterations-- > 0) {
                 int i1 = random.nextInt(G.getNodes().size()), i2, i3;
                 do {
@@ -4255,48 +4394,35 @@ class AnyNode implements NeighborExplorer {
     public Move explore(boolean firstImprovement) {
         List<Move> moves = new ArrayList<>();
         LexMultiValues values = F.evaluation();
-        VarNodePosition node = varNodeList.get(new Random().nextInt(varNodeList.size()));
-        List<Pair<Integer, Integer>> positions = new ArrayList<>();
+        VarNodePosition node = varNodeList.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(varNodeList.size()));
         int oldX = node.x(), oldY = node.y();
-        {
-            for (int newX = 0; newX <= COL; newX++) {
-                for (int newY = 0; newY <= ROW; newY++) {
-                    if (newX == oldX && newY == oldY) continue;
-                    positions.add(new Pair<>(newX, newY));
+        int iteration = 0;
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        while (iteration < counter) {
+            int newX = random.nextInt(COL + 1);
+            int newY = random.nextInt(ROW + 1);
+            if (newX == oldX && newY == oldY) continue;
+            LexMultiValues current = F.evaluateOneNodeMove(node, newX, newY);
+            Move move = new Move(node, newX, newY, current);
+            if (current.better(values)) {
+                if (firstImprovement) {
+                    moves.add(move);
+                    return move;
                 }
+                moves.clear();
+                moves.add(move);
+                values = current;
             }
-            Collections.shuffle(positions, new Random());
-            // for (int newX = 0; newX <= COL; newX++) {
-            //     for (int newY = 0; newY <= ROW; newY++) {
-            //         if (newX == oldX && newY == oldY) continue;
-            int iteration = 0;
-            for (Pair<Integer, Integer> pos : positions) {
-                int newX = pos.a, newY = pos.b;
-                    LexMultiValues current = F.evaluateOneNodeMove(node, newX, newY);
-                    Move move = new Move(node, newX, newY, current);
-                    if (current.better(values)) {
-                        if (firstImprovement) {
-                            moves.add(move);
-                            return move;
-                        }
-                        moves.clear();
-                        moves.add(move);
-                        values = current;
-                    }
-                    else if (current.equals(values)) {
-                        moves.add(move);
-                    }
-                if (++iteration >= counter) {
-                    break;
-                }
-                // }
+            else if (current.equals(values)) {
+                moves.add(move);
             }
+            iteration++;
         }
 
         if (moves.isEmpty()) {
             return null;
         }
-        return moves.get(new Random().nextInt(moves.size()));
+        return moves.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(moves.size()));
     }
 }
 
@@ -4333,54 +4459,160 @@ class MinRegretNode implements NeighborExplorer {
         }
 
         Collections.sort(nodeValues, (a, b) -> a.a.better(b.a) ? -1 : a.a.equals(b.a) ? 0 : 1);
-            List<Pair<Integer, Integer>> positions = new ArrayList<>();
-            for (int newX = 0; newX <= COL; newX++) {
-                for (int newY = 0; newY <= ROW; newY++) {
-                    // if (newX == oldX && newY == oldY) continue;
-                    positions.add(new Pair<>(newX, newY));
-                }
-            }
-
-        // if (worseNode != null) {
-        Collections.shuffle(positions, new Random());
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
         for (int idx = 0; idx < Math.min(2, nodeValues.size()); idx++) {
             VarNodePosition node = nodeValues.get(idx).b;
-            // int oldX = worseNode.x(), oldY = worseNode.y();
             int oldX = node.x(), oldY = node.y();
-            // for (int newX = 0; newX <= COL; newX++) {
-            //     for (int newY = 0; newY <= ROW; newY++) {
-            //         if (newX == oldX && newY == oldY) continue;
             int iteration = 0;
-            for (Pair<Integer, Integer> pos : positions) {
-                int newX = pos.a, newY = pos.b;
+            while (iteration < counter) {
+                int newX = random.nextInt(COL + 1);
+                int newY = random.nextInt(ROW + 1);
                 if (newX == oldX && newY == oldY) continue;
-                    // LexMultiValues current = F.evaluateOneNodeMove(worseNode, newX, newY);
-                    // Move move = new Move(worseNode, newX, newY, current);
-                    LexMultiValues current = F.evaluateOneNodeMove(node, newX, newY);
-                    Move move = new Move(node, newX, newY, current);
-                    if (current.better(values)) {
-                        if (firstImprovement) {
-                            moves.add(move);
-                            return move;
-                        }
-                        moves.clear();
+                LexMultiValues current = F.evaluateOneNodeMove(node, newX, newY);
+                Move move = new Move(node, newX, newY, current);
+                if (current.better(values)) {
+                    if (firstImprovement) {
                         moves.add(move);
-                        values = current;
+                        return move;
                     }
-                    else if (current.equals(values)) {
-                        moves.add(move);
-                    }
-                if (++iteration >= counter) {
-                    break;
+                    moves.clear();
+                    moves.add(move);
+                    values = current;
                 }
-                // }
+                else if (current.equals(values)) {
+                    moves.add(move);
+                }
+                iteration++;
             }
         }
 
         if (moves.isEmpty()) {
             return null;
         }
-        return moves.get(new Random().nextInt(moves.size()));
+        return moves.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(moves.size()));
+    }
+}
+
+class CentroidMove implements NeighborExplorer {
+    private final int ROW, COL;
+    private final Graph G;
+    private final CBLSGPModel model;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public CentroidMove(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.ROW = ROW;
+        this.COL = COL;
+        this.G = G;
+        this.model = model;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        List<Move> moves = new ArrayList<>();
+        LexMultiValues values = F.evaluation();
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        int iterations = counter;
+        while (iterations-- > 0) {
+            int i = random.nextInt(varNodeList.size());
+            VarNodePosition varNodePosition = varNodeList.get(i);
+            Node N = G.getNode(varNodePosition.id);
+            List<Edge> adjEdges = G.getEdges(N);
+            if (adjEdges == null || adjEdges.isEmpty()) continue;
+            
+            double sumX = 0, sumY = 0;
+            for (Edge e : adjEdges) {
+                Node neighbor = e.getRemaining(N);
+                VarNodePosition nPos = model.getVarNode(neighbor.id);
+                sumX += nPos.x();
+                sumY += nPos.y();
+            }
+            int targetX = (int) Math.round(sumX / adjEdges.size());
+            int targetY = (int) Math.round(sumY / adjEdges.size());
+            
+            int newX = Math.max(0, Math.min(COL, targetX + random.nextInt(3) - 1));
+            int newY = Math.max(0, Math.min(ROW, targetY + random.nextInt(3) - 1));
+            
+            if (newX == varNodePosition.x() && newY == varNodePosition.y()) continue;
+
+            LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, newX, newY);
+            Move move = new Move(varNodePosition, newX, newY, current);
+            if (current.better(values)) {
+                if (firstImprovement) {
+                    moves.add(move);
+                    break;
+                }
+                moves.clear();
+                moves.add(move);
+                values = current;
+            } else if (current.equals(values)) {
+                moves.add(move);
+            }
+        }
+        if (moves.isEmpty()) return null;
+        return moves.get(random.nextInt(moves.size()));
+    }
+}
+
+class NeighborSwap implements NeighborExplorer {
+    private final Graph G;
+    private final CBLSGPModel model;
+    private final LexMultiFunctions F;
+    private final int counter;
+    private final List<Edge> allEdges;
+
+    public NeighborSwap(Graph G, CBLSGPModel model, LexMultiFunctions F, int counter) {
+        this.G = G;
+        this.model = model;
+        this.F = F;
+        this.counter = counter;
+        this.allEdges = G.getEdges();
+    }
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        if (allEdges == null || allEdges.isEmpty()) return null;
+        List<Move> moves = new ArrayList<>();
+        int iterations = counter;
+        LexMultiValues values = F.evaluation();
+        java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+        while (iterations-- > 0) {
+            Edge e = allEdges.get(random.nextInt(allEdges.size()));
+            VarNodePosition N1 = model.getVarNode(e.fromNode.id);
+            VarNodePosition N2 = model.getVarNode(e.toNode.id);
+
+            int oldX1 = N1.x(), oldY1 = N1.y();
+            F.propagateOneNodeMove(N1, N2.x(), N2.y());
+            model.move(N1, N2.x(), N2.y());
+
+            LexMultiValues current = F.evaluateOneNodeMove(N2, oldX1, oldY1);
+            Move move = new Move(N1, N2.x(), N2.y(), current);
+            move.ins(N2, oldX1, oldY1);
+
+            if (current.better(values)) {
+                if (firstImprovement) {
+                    F.propagateOneNodeMove(N1, oldX1, oldY1);
+                    model.move(N1, oldX1, oldY1);
+                    moves.add(move);
+                    break;
+                }
+                moves.clear();
+                moves.add(move);
+                values = current;
+            } else if (current.equals(values)) {
+                moves.add(move);
+            }
+
+            F.propagateOneNodeMove(N1, oldX1, oldY1);
+            model.move(N1, oldX1, oldY1);
+        }
+
+        if (moves.isEmpty()) return null;
+        return moves.get(random.nextInt(moves.size()));
     }
 }
 
@@ -4572,7 +4804,7 @@ class PQTree {
                 }
             }
 
-            if (l == r & color[adj.get(u).get(l)] == 2) {
+            if (l == r && color[adj.get(u).get(l)] == 2) {
                 work(adj.get(u).get(l));
                 return ;
             }
@@ -4808,7 +5040,7 @@ public class Main {
 
     public static void planarGen() throws IOException {
         List<Integer> N = List.of(10, 20, 50, 100, 200);
-        Random random = new Random();
+        Random random = java.util.concurrent.ThreadLocalRandom.current();
 
         for (int i = 0; i < N.size(); i++) {
             Kattio io = new Kattio(null, "tests/" + i + ".in");
@@ -4825,6 +5057,39 @@ public class Main {
                 if (used.contains(eId)) continue;
                 used.add(eId);
                 io.printf("%d %d\n", edge.fromNode.id + 1, edge.toNode.id + 1);
+            }
+
+            io.close();
+            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", i, n, n, n, m);
+        }
+    }
+
+    public static void connectedGen() throws IOException {
+        List<Integer> N = List.of(20);
+        List<Integer> M = List.of(50);
+        int start = 20;
+        for (int i = 0; i < N.size(); i++) {
+            Kattio io = new Kattio(null, "tests/" + (i + start) + ".in");
+
+            int n = N.get(i), m = M.get(i);
+            io.printf("%d %d\n%d %d\n", n, n, n, m);
+            Set<Integer> used = new HashSet<>();
+            Random random = java.util.concurrent.ThreadLocalRandom.current();
+            for (int u = 1; u < n; u++) {
+                int v = random.nextInt(u);
+                io.printf("%d %d\n", u + 1, v + 1);
+                int eId = Math.min(u, v) * n + Math.max(u, v);
+                used.add(eId);
+            }
+            int cnt = n - 1;
+            while (cnt < m) {
+                int u = random.nextInt(n), v = random.nextInt(n);
+                if (u == v) continue;
+                int eId = Math.min(u, v) * n + Math.max(u, v);
+                if (used.contains(eId)) continue;
+                used.add(eId);
+                io.printf("%d %d\n", u + 1, v + 1);
+                cnt++;
             }
 
             io.close();
@@ -5032,7 +5297,7 @@ public class Main {
         for (Node node : G.getNodes()) {
             nodes.add(node.id);
         }
-        Collections.shuffle(nodes, new Random());
+        Collections.shuffle(nodes, java.util.concurrent.ThreadLocalRandom.current());
         for (int i = 0; i < n; i++) {
             int id = nodes.get(i);
             VarNodePosition v = model.getVarNode(id);
@@ -5176,11 +5441,11 @@ public class Main {
         // F0.add(F3);
         LexMultiFunctions F = new LexMultiFunctions();
         F.add(F3); // NumberOfIntersectionEdges
-        F.add(F2); // MinAngle
-        F.add(F5); // EdgeLengthVariance
-        F.add(F2a); // SumAngle
-        F.add(F7); // MinDistance2Nodes
         F.add(F4); // MinDistanceNodeEdge
+        F.add(F2); // MinAngle
+        F.add(F2a); // SumAngle
+        F.add(F5); // EdgeLengthVariance
+        F.add(F7); // MinDistance2Nodes
         // F.add(F6); // NodePosVariance
         // F.add(F1); // MinDistanceEdge
         // F.add(F4a); // SumDistanceNodeEdge
@@ -5210,17 +5475,21 @@ public class Main {
         boolean firstImprovement = true;
         List<NeighborExplorer> explorers = new ArrayList<>();
         final int numRandom = 100;
+        explorers.add(new CentroidMove(ROW, COL, G, model, F, varPosList, numRandom));
+        explorers.add(new NeighborSwap(G, model, F, numRandom));
         explorers.add(new MinRegretNode(ROW, COL, G, model, F, varPosList, numRandom));
         explorers.add(new AnyNode(ROW, COL, G, model, F, varPosList, numRandom * 2));
         explorers.add(new OneRandomNeighborhood(ROW, COL, G, F, varPosList, numRandom));
         explorers.add(new OneRandomMove(ROW, COL, G, F, varPosList, numRandom));
+        explorers.add(new OneRandomNeighborhoodCOL(COL, F, varPosList, numRandom));
+        explorers.add(new OneRandomNeighborhoodROW(ROW, F, varPosList, numRandom));
         explorers.add(new TwoRandomNeighborhood(ROW, COL, G, model, F, varPosList, numRandom));
         explorers.add(new TwoRandomMove(ROW, COL, G, model, F, varPosList, numRandom));
         explorers.add(new OneRandomCOL(COL, G, F, varPosList, numRandom));
         explorers.add(new OneRandomROW(ROW, G, F, varPosList, numRandom));
         explorers.add(new TwoRandomSwap(G, model, F, varPosList, numRandom));
         explorers.add(new ThreeRandomExchange(G, model, F, varPosList, numRandom));
-        final int maxIterations = 10000;
+        final int maxIterations = 5000;
         // final int maxIterations = 0;
         for (int iter = 0; iter < maxIterations; iter++) {
             Move selectedMove = null;
@@ -5264,7 +5533,7 @@ public class Main {
             }
             else {
                 // generateInitialSolution1(ROW, COL, model, G, adj, F0);
-                Random rnd = new Random();
+                Random rnd = java.util.concurrent.ThreadLocalRandom.current();
                 // for (int i = 0; i < n; i++) {
                 //     VarNodePosition v = varPos.get(nodes.get(i));
                 //     int newX = rnd.nextInt(COL + 1);
@@ -5364,6 +5633,7 @@ public class Main {
         try {
             //noinspection StatementWithEmptyBody,ConstantValue
             if (true) {
+            // if (false) {
                 long startTime = System.currentTimeMillis();
                 dir = "tests/" + startTime;
                 File newDirectory = new File(dir);
@@ -5373,7 +5643,8 @@ public class Main {
                     // Integer[] tests = {5, 6, 7, 8, 9};
                     // Integer[] tests = {10, 11, 12, 13, 14};
                     // Integer[] tests = {16};
-                    Integer[] tests = {17, 18, 19};
+                    // Integer[] tests = {17, 18, 19};
+                    Integer[] tests = {21};
                     for (int i : tests) test1(i);
                 } else {
                     System.out.println("Directory: " + dir + " not created");
@@ -5381,6 +5652,7 @@ public class Main {
             }
             else {
                 // planarGen();
+                // connectedGen();
                 // completeGen();
                 // circleGen();
                 // completeBipartiteGen();

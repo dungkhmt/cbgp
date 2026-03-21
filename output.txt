@@ -1,0 +1,333 @@
+Line 34: CLASS/INTERFACE class Pair<K, V> {
+  Line 38: METHOD public Pair(K a, V b) {
+  Line 44: METHOD public String toString() {
+  Line 49: METHOD public boolean equals(Object obj) {
+  Line 55: METHOD public int hashCode() {
+Line 59: CLASS/INTERFACE class Geometry {
+  Line 60: METHOD public static double distance(double x1, double y1, double x2, double y2) {
+  Line 63: METHOD public static double squareDistance(double x1, double y1, double x2, double y2){
+  Line 66: METHOD public static double angle(double x1, double y1, double x2, double y2, double x3, double y3){
+  Line 73: METHOD public static double cross(double x1, double y1, double x2, double y2) {
+  Line 76: METHOD public static double dot(double x1, double y1, double x2, double y2) {
+Line 81: CLASS/INTERFACE class Point2D {
+  Line 85: METHOD public Point2D(double x, double y) {
+  Line 91: METHOD public String toString() {
+  Line 96: METHOD public boolean equals(Object obj) {
+  Line 102: METHOD public double distance(Point2D o) {
+  Line 106: METHOD public double distance(Line2D line) {
+  Line 110: METHOD public double distance(Segment2D seg) {
+  Line 126: METHOD public double cross(Point2D o) {
+  Line 129: METHOD public double cross(Point2D o1, Point2D o2) {
+  Line 132: METHOD public double dot(Point2D o) {
+  Line 136: METHOD public double minAngle(List<Point2D> points) {
+  Line 158: METHOD public int countCoincide(List<Point2D> points) {
+  Line 185: METHOD public Point2D ray(double angle, int minX, int minY, int maxX, int maxY) {
+  Line 245: METHOD public int countCoincide(List<Point2D> points, Point2D point) {
+  Line 258: METHOD public double getX() {
+  Line 261: METHOD public double x() {
+  Line 265: METHOD public double getY() {
+  Line 268: METHOD public double y() {
+Line 273: CLASS/INTERFACE class Line2D {
+  Line 275: METHOD public Line2D(double a, double b, double c) {
+  Line 282: METHOD public String toString() {
+  Line 286: METHOD public Point2D intersect(Line2D line) {
+  Line 299: METHOD public double getA() {
+  Line 303: METHOD public double getB() {
+  Line 307: METHOD public double getC() {
+Line 312: CLASS/INTERFACE class Segment2D {
+  Line 314: METHOD public Segment2D(Point2D x, Point2D y) {
+  Line 320: METHOD public String toString() {
+  Line 324: METHOD public boolean fastIntersect(Segment2D seg) {
+  Line 333: METHOD public Point2D intersect(Segment2D seg) {
+  Line 377: METHOD public Point2D getX() {
+  Line 381: METHOD public Point2D getY() {
+Line 386: CLASS/INTERFACE class Kattio extends PrintWriter {
+  Line 392: METHOD public Kattio(OutputStream o) {
+  Line 396: METHOD public Kattio(InputStream i, OutputStream o) {
+  Line 400: METHOD public Kattio(String inputFile) throws IOException {
+  Line 411: METHOD public Kattio(String inputFile, String outputFile) throws IOException {
+  Line 421: METHOD public String next() {
+Line 437: CLASS/INTERFACE interface Function{
+Line 443: CLASS/INTERFACE class VarIntLS{
+  Line 447: METHOD public VarIntLS(int id, Set<Integer> domain){
+  Line 450: METHOD public int value(){
+Line 456: CLASS/INTERFACE class NodePosition{
+  Line 460: METHOD public NodePosition(int id, int x_pos, int y_pos){
+  Line 468: METHOD public void assign(int id, int newX, int newY){
+  Line 472: METHOD public void assign(int newX, int newY){
+Line 477: CLASS/INTERFACE class VarNodePosition{
+  Line 483: METHOD public VarNodePosition(int id, Set<Integer> DX, Set<Integer> DY){
+  Line 490: METHOD public void assign(int newX, int newY){
+  Line 493: METHOD public NodePosition getNodePosition(){
+Line 497: CLASS/INTERFACE class Node{
+Line 501: CLASS/INTERFACE class Edge{
+  Line 506: METHOD public Edge(int id, Node fromNode, Node toNode) {
+  Line 511: METHOD public Edge(Node fromNode, Node toNode) {
+  Line 517: METHOD public Node getRemaining(Node node){
+Line 524: CLASS/INTERFACE class Graph {
+  Line 529: METHOD public Graph(List<Node> nodes){
+  Line 536: METHOD public Graph(List<Node> nodes, Map<Node, List<Edge>> a) {
+  Line 544: METHOD public Edge addEdge(Node u, Node v){
+  Line 550: METHOD public List<Edge> getEdges(Node u){
+  Line 553: METHOD public Map<Node, List<Edge>> getA() {
+  Line 556: METHOD public List<Edge> getEdges() {
+  Line 564: METHOD public Node getNode(int id) {
+  Line 567: METHOD public Node getNodeI(int id) {
+  Line 573: METHOD private void dfs(Node current, Node prev) {
+  Line 583: METHOD public List<Edge> dfs(Node start) {
+  Line 594: METHOD private void dfs(Node current, Node prev, List<DoubleLinkedList<Edge>> adj) {
+  Line 622: METHOD public List<Edge> dfs(Node start, List<DoubleLinkedList<Edge>> adj) {
+  Line 659: METHOD public List<Integer> bfs(Node start, List<DoubleLinkedList<Edge>> adj) {
+Line 688: CLASS/INTERFACE class CBLSGPModel{
+  Line 694: METHOD public CBLSGPModel() {
+  Line 699: METHOD public VarNodePosition getVarNode(int id){
+  Line 703: METHOD public void addVarNode(VarNodePosition varNodePosition){
+  Line 706: METHOD public void addFunction(Function f){
+  Line 709: METHOD public void move(VarNodePosition varNode, int x, int y){
+  Line 716: METHOD public List<NodePosition> getNodePositions(){
+  Line 723: METHOD public void setNodePositionsValue(List<NodePosition> nodePositions){
+  Line 731: METHOD public void close(){
+Line 736: CLASS/INTERFACE class DoubleCompare implements Comparator<Double> {
+  Line 738: METHOD public int compare(Double a, Double b) {
+Line 744: CLASS/INTERFACE class TreeMultiset<T extends Comparable<T>> implements Iterable<T> {
+  Line 748: METHOD public TreeMultiset() {
+  Line 751: METHOD public TreeMultiset(Comparator<T> comparator) {
+  Line 755: METHOD public void clear() {
+  Line 761: METHOD public Iterator<T> iterator() {
+  Line 768: METHOD public boolean hasNext() {
+  Line 773: METHOD public T next() {
+  Line 784: METHOD void add(T value) {
+  Line 789: METHOD void add(T value, int cnt) {
+  Line 794: METHOD boolean remove(T value) {
+  Line 809: METHOD boolean remove(T value, int cnt) {
+  Line 825: METHOD T first() {
+  Line 829: METHOD public boolean isContains(T value) {
+  Line 833: METHOD public int countContains(T value) {
+  Line 837: METHOD public int size() {
+  Line 841: METHOD boolean isEmpty() {
+Line 854: CLASS/INTERFACE class EdgeLengthVariance implements Function {
+  Line 863: METHOD public String toString() {
+  Line 867: METHOD private int encode(Edge e) {
+  Line 873: METHOD public EdgeLengthVariance(Graph g, Map<Node, VarNodePosition> positions) {
+  Line 910: METHOD public double evaluation() {
+  Line 915: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 956: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 985: METHOD public void initPropagation() {
+Line 990: CLASS/INTERFACE class NodePosVariance implements Function {
+  Line 998: METHOD public String toString() {
+  Line 1002: METHOD public NodePosVariance(Graph g, Map<Node, VarNodePosition> positions) {
+  Line 1024: METHOD public double evaluation() {
+  Line 1029: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 1068: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 1093: METHOD public void initPropagation() {
+Line 1098: CLASS/INTERFACE class SumDistanceEdge implements Function{
+  Line 1106: METHOD public String toString() {
+  Line 1110: METHOD private int encode(Edge e) {
+  Line 1116: METHOD public SumDistanceEdge(Graph g, Map<Node, VarNodePosition> positions){
+  Line 1148: METHOD public double evaluation() {
+  Line 1153: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 1191: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 1218: METHOD public void initPropagation() {
+Line 1223: CLASS/INTERFACE class MinDistanceEdge implements Function{
+  Line 1234: METHOD public String toString() {
+  Line 1238: METHOD private int encode(Edge e) {
+  Line 1243: METHOD public MinDistanceEdge(Graph g, Map<Node, VarNodePosition> positions){
+  Line 1283: METHOD public double evaluation() {
+  Line 1299: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 1393: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 1420: METHOD public void initPropagation() {
+Line 1425: CLASS/INTERFACE class SumAngle implements Function {
+  Line 1436: METHOD public String toString() {
+  Line 1450: METHOD public int compareTo(NodeAngle o) {
+  Line 1458: METHOD public boolean equals(Object o) {
+  Line 1466: METHOD public SumAngle(Graph g, Map<Node, VarNodePosition> positions) {
+  Line 1495: METHOD private void updateNodeAngles(Node node, int newX, int newY) {
+  Line 1541: METHOD private void updateNeighborAngle(Node node, Node movedNode, double newAngle, boolean debug) {
+  Line 1610: METHOD public double evaluation() {
+  Line 1615: METHOD public double evaluateOneNodeMove(VarNodePosition v, int newX, int newY) {
+  Line 1657: METHOD public void propagateOneNodeMove(VarNodePosition v, int newX, int newY) {
+  Line 1675: METHOD public void initPropagation() {
+Line 1680: CLASS/INTERFACE class MinAngle implements Function {
+  Line 1691: METHOD public String toString() {
+  Line 1705: METHOD public int compareTo(NodeAngle o) {
+  Line 1715: METHOD public boolean equals(Object o) {
+  Line 1727: METHOD public MinAngle(Graph g, Map<Node, VarNodePosition> positions) {
+  Line 1758: METHOD private void updateNodeAngles(Node node, int newX, int newY) {
+  Line 1821: METHOD private void updateNeighborAngle(Node node, Node movedNode, double newAngle, boolean debug) {
+  Line 1919: METHOD public double evaluation() {
+  Line 1924: METHOD public double evaluateOneNodeMove(VarNodePosition v, int newX, int newY) {
+  Line 1980: METHOD public void propagateOneNodeMove(VarNodePosition v, int newX, int newY) {
+  Line 2014: METHOD public void initPropagation() {
+Line 2019: CLASS/INTERFACE class NumberIntersectionEdges implements Function{
+  Line 2028: METHOD public String toString() {
+  Line 2032: METHOD private int encode(Edge e) {
+  Line 2038: METHOD public NumberIntersectionEdges(Graph g, Map<Node, VarNodePosition> positions){
+  Line 2100: METHOD private Segment2D createSegment(Edge e) {
+  Line 2113: METHOD private int removeNodeIntersections(Node node) {
+  Line 2133: METHOD private int addNodeIntersections(Node node) {
+  Line 2186: METHOD public double evaluation() {
+  Line 2191: METHOD public double evaluateOneNodeMove(VarNodePosition v, int newX, int newY) {
+  Line 2275: METHOD public void propagateOneNodeMove(VarNodePosition v, int newX, int newY) {
+  Line 2293: METHOD public void initPropagation() {
+Line 2298: CLASS/INTERFACE class Distance2Nodes implements Function {
+  Line 2303: METHOD public Distance2Nodes(VarNodePosition pos1, VarNodePosition pos2) {
+  Line 2309: METHOD public double evaluation() {
+  Line 2314: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 2328: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 2342: METHOD public void initPropagation() {
+  Line 2349: METHOD public String toString() {
+Line 2354: CLASS/INTERFACE class MinDistance2Nodes implements Function {
+  Line 2360: METHOD public MinDistance2Nodes(Map<Node, VarNodePosition> varPos) {
+  Line 2385: METHOD public double evaluation() {
+  Line 2390: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 2437: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 2479: METHOD public void initPropagation() {
+  Line 2484: METHOD public String toString() {
+Line 2489: CLASS/INTERFACE class SumDistanceNodeEdge implements Function {
+  Line 2498: METHOD public String toString() {
+  Line 2502: METHOD private long encode(Node node, Edge edge) {
+  Line 2506: METHOD private long encode(Edge edge) {
+  Line 2512: METHOD private Segment2D createSegment(Edge e) {
+  Line 2524: METHOD private Segment2D createSegment(Node node, int newX, int newY) {
+  Line 2533: METHOD public SumDistanceNodeEdge(Graph g, Map<Node, VarNodePosition> positions) {
+  Line 2577: METHOD public double evaluation() {
+  Line 2582: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 2658: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 2709: METHOD public void initPropagation() {
+Line 2714: CLASS/INTERFACE class MinDistanceNodeEdge implements Function {
+  Line 2725: METHOD public String toString() {
+  Line 2729: METHOD private long encode(Node node, Edge edge) {
+  Line 2732: METHOD private long encode(Edge edge) {
+  Line 2738: METHOD private Segment2D createSegment(Edge e) {
+  Line 2750: METHOD private Segment2D createSegment(Node node, int newX, int newY) {
+  Line 2759: METHOD public MinDistanceNodeEdge(Graph g, Map<Node, VarNodePosition> positions) {
+  Line 2808: METHOD public double evaluation() {
+  Line 2825: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 2974: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 3041: METHOD public void initPropagation() {
+Line 3046: CLASS/INTERFACE class LexMultiValues{
+  Line 3048: METHOD public LexMultiValues(List<Double> values) {
+  Line 3052: METHOD public boolean better(LexMultiValues V){
+  Line 3062: METHOD public boolean equals(LexMultiValues V){
+  Line 3072: METHOD public String toString() {
+Line 3081: CLASS/INTERFACE class ObjectiveFunction implements Function {
+  Line 3088: METHOD public ObjectiveFunction(Function f1, Function f2, Function f3, Function f4,  double w1, double w2, double w3, double w4) {
+  Line 3100: METHOD public double evaluation() {
+  Line 3105: METHOD public String toString() {
+  Line 3111: METHOD public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 3119: METHOD public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 3127: METHOD public void initPropagation() {
+Line 3132: CLASS/INTERFACE class LexMultiFunctions{
+  Line 3137: METHOD public LexMultiFunctions() {
+  Line 3141: METHOD public void add(Function f) {
+  Line 3145: METHOD public LexMultiValues evaluation() {
+  Line 3152: METHOD public LexMultiValues evaluateOneNodeMove(VarNodePosition v, int x, int y){
+  Line 3159: METHOD public void propagateOneNodeMove(VarNodePosition v, int x, int y) {
+Line 3166: CLASS/INTERFACE class LinkedNode<E> {
+  Line 3171: METHOD public LinkedNode(E value, LinkedNode<E> next, LinkedNode<E> previous) {
+  Line 3177: METHOD public LinkedNode<E> next() {
+  Line 3180: METHOD public LinkedNode<E> prev() {
+Line 3185: CLASS/INTERFACE class DoubleLinkedList<E> {
+  Line 3190: METHOD public DoubleLinkedList() {
+  Line 3195: METHOD public DoubleLinkedList(E value) {
+  Line 3200: METHOD public DoubleLinkedList(List<E> values) {
+  Line 3218: METHOD public int size() {
+  Line 3222: METHOD public LinkedNode<E> add(E value) {
+  Line 3236: METHOD public LinkedNode<E> add(LinkedNode<E> node) {
+  Line 3253: METHOD public LinkedNode<E> addAll(List<E> values) {
+  Line 3261: METHOD public LinkedNode<E> addFirst(E value) {
+  Line 3275: METHOD public LinkedNode<E> insert(int index, E value) {
+  Line 3294: METHOD public LinkedNode<E> insert(LinkedNode<E> node, E value) {
+  Line 3309: METHOD public LinkedNode<E> removeFirst() {
+  Line 3324: METHOD public LinkedNode<E> removeLast() {
+  Line 3339: METHOD public void remove(LinkedNode<E> removedNode) {
+  Line 3363: METHOD public void remove(int index) {
+  Line 3388: METHOD public LinkedNode<E> get(int index) {
+  Line 3396: METHOD public boolean isEmpty() {
+  Line 3400: METHOD public LinkedNode<E> getFirst() {
+  Line 3403: METHOD public LinkedNode<E> getLast() {
+  Line 3407: METHOD public List<E> toList() {
+  Line 3417: METHOD public List<LinkedNode<E>> toNodeList() {
+Line 3429: CLASS/INTERFACE class GraphFace {
+  Line 3477: METHOD GraphFace split(LinkedNode<Edge> u, LinkedNode<Edge> v) {
+Line 3506: CLASS/INTERFACE class PlanarGraphGenerator {
+  Line 3507: METHOD public static Graph generatePlanarGraph(int n, int m) {
+Line 3622: CLASS/INTERFACE class MoveNode {
+  Line 3626: METHOD public MoveNode(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 3633: METHOD public String toString() {
+Line 3638: CLASS/INTERFACE class Move {
+  Line 3642: METHOD public Move(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 3649: METHOD public Move(VarNodePosition varNodePosition, int newX, int newY, LexMultiValues values) {
+  Line 3656: METHOD public Move(List<MoveNode> moves, LexMultiValues values) {
+  Line 3661: METHOD public MoveNode ins(VarNodePosition varNodePosition, int newX, int newY) {
+  Line 3667: METHOD public boolean better(Move o) {
+  Line 3673: METHOD public boolean better(LexMultiValues o) {
+Line 3680: CLASS/INTERFACE interface NeighborExplorer {
+Line 3688: CLASS/INTERFACE class OneRandomNeighborhood implements NeighborExplorer {
+  Line 3695: METHOD public OneRandomNeighborhood(int ROW, int COL, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 3705: METHOD public Move explore(boolean firstImprovement) {
+Line 3757: CLASS/INTERFACE class OneRandomNeighborhoodCOL implements NeighborExplorer {
+  Line 3763: METHOD public OneRandomNeighborhoodCOL(int COL, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 3771: METHOD public Move explore(boolean firstImprovement) {
+Line 3820: CLASS/INTERFACE class OneRandomNeighborhoodROW implements NeighborExplorer {
+  Line 3826: METHOD public OneRandomNeighborhoodROW(int ROW, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 3834: METHOD public Move explore(boolean firstImprovement) {
+Line 3883: CLASS/INTERFACE class OneRandomMove implements NeighborExplorer {
+  Line 3890: METHOD public OneRandomMove(int ROW, int COL, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 3900: METHOD public Move explore(boolean firstImprovement) {
+Line 3938: CLASS/INTERFACE class OneRandomCOL implements NeighborExplorer {
+  Line 3945: METHOD public OneRandomCOL(int COL, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 3954: METHOD public Move explore(boolean firstImprovement) {
+Line 3991: CLASS/INTERFACE class OneRandomROW implements NeighborExplorer {
+  Line 3998: METHOD public OneRandomROW(int ROW, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 4007: METHOD public Move explore(boolean firstImprovement) {
+Line 4044: CLASS/INTERFACE class TwoRandomMove implements NeighborExplorer {
+  Line 4052: METHOD public TwoRandomMove(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 4063: METHOD public Move explore(boolean firstImprovement) {
+Line 4125: CLASS/INTERFACE class TwoRandomNeighborhood implements NeighborExplorer {
+  Line 4133: METHOD public TwoRandomNeighborhood(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 4144: METHOD public Move explore(boolean firstImprovement) {
+Line 4231: CLASS/INTERFACE class TwoRandomSwap implements NeighborExplorer {
+  Line 4238: METHOD public TwoRandomSwap(Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 4247: METHOD public Move explore(boolean firstImprovement) {
+Line 4296: CLASS/INTERFACE class ThreeRandomExchange implements NeighborExplorer {
+  Line 4303: METHOD public ThreeRandomExchange(Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 4312: METHOD public Move explore(boolean firstImprovement) {
+Line 4373: CLASS/INTERFACE class AnyNode implements NeighborExplorer {
+  Line 4383: METHOD public AnyNode(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 4394: METHOD public Move explore(boolean firstImprovement) {
+Line 4442: CLASS/INTERFACE class MinRegretNode implements NeighborExplorer {
+  Line 4452: METHOD public MinRegretNode(int ROW, int COL, Graph G, CBLSGPModel model, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+  Line 4464: METHOD public Move explore(boolean firstImprovement) {
+Line 4526: CLASS/INTERFACE class PQTree {
+  Line 4535: METHOD public PQTree(int n) {
+  Line 4548: METHOD public void insert(String s) {
+  Line 4558: METHOD public List<Integer> getAns() {
+  Line 4563: METHOD private void fail() {
+  Line 4567: METHOD private int newNode(int y) {
+  Line 4573: METHOD private void delete(int u) {
+  Line 4578: METHOD private void dfs(int u) {
+  Line 4602: METHOD private boolean check(List<Integer> v) {
+  Line 4636: METHOD private List<Integer> split(int u) {
+  Line 4695: METHOD private void work(int u) {
+  Line 4781: METHOD private void remove(int u) {
+  Line 4794: METHOD private void dfsAns(int u) {
+Line 4805: CLASS/INTERFACE class STNumbering {
+  Line 4874: METHOD private void tarjan(int u, int p) {
+  Line 4902: METHOD private void dfs(int u) {
+  Line 4913: METHOD private void solve(int u) {
+  Line 4921: METHOD public boolean process() {
+  Line 4938: METHOD public int[] getAns() {
+Line 4943: CLASS/INTERFACE public class Main {
+  Line 4948: METHOD public static void planarGen() throws IOException {
+  Line 4974: METHOD public static void connectedGen() throws IOException {
+  Line 5007: METHOD public static void completeGen() throws IOException {
+  Line 5027: METHOD public static void circleGen() throws IOException {
+  Line 5045: METHOD public static void completeBipartiteGen() throws IOException {
+  Line 5065: METHOD public static void wheelGen() throws IOException {
+  Line 5087: METHOD public static void gridGen() throws IOException {
+  Line 5114: METHOD public static void ncubesGen() throws IOException {
+  Line 5141: METHOD public static void generateInitialSolution(int ROW, int COL, CBLSGPModel model, Graph G, List<DoubleLinkedList<Edge>> adj) {
+  Line 5201: METHOD public static void generateInitialSolution1(int ROW, int COL, CBLSGPModel model, Graph G, List<DoubleLinkedList<Edge>> adj, LexMultiFunctions F) {
+  Line 5247: METHOD public static void test1(int tt) throws IOException {
+  Line 5537: METHOD public static void main(String[] args){
