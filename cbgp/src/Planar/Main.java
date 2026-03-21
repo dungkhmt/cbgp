@@ -1,3 +1,4 @@
+
 package Planar;
 
 import java.io.BufferedOutputStream;
@@ -419,10 +420,10 @@ class Kattio extends PrintWriter {
 
 
 interface Function{
-    double evaluation();
-    double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
-    void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
-    void initPropagation();
+    public double evaluation();
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
+    public void initPropagation();
 }
 class VarIntLS{
     int id;
@@ -827,6 +828,112 @@ class TreeMultiset<T extends Comparable<T>> implements Iterable<T> {
     // }
     Set<Map.Entry<T, Integer>> entrySet() {
         return map.entrySet();
+    }
+}
+
+class Angle implements Function{
+    VarNodePosition u;
+    VarNodePosition v;
+
+    Angle(VarNodePosition u, VarNodePosition v){
+        this.u= u; this.v = v;
+    }
+    @Override
+    public double evaluation(){
+        return 0;
+    }
+     @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        return 0;
+    }
+     @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        
+    }
+    @Override
+
+    public void initPropagation(){
+
+    }
+}
+class Length implements Function{
+    VarNodePosition u;
+    VarNodePosition v;
+
+    Length(VarNodePosition u, VarNodePosition v){
+        this.u= u; this.v = v;
+    }
+    @Override
+    public double evaluation(){
+        return 0;
+    }
+     @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        return 0;
+    }
+     @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        
+    }
+    @Override
+
+    public void initPropagation(){
+
+    }
+}
+class Distance implements Function{
+    VarNodePosition u;
+    VarNodePosition v;
+    VarNodePosition w;
+
+    Distance(VarNodePosition w, VarNodePosition u, VarNodePosition v){
+        this.u= u; this.v = v; this.w = w;
+    }
+
+    @Override
+    public double evaluation(){
+        return 0;
+    }
+     @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        return 0;
+    }
+     @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        
+    }
+    @Override
+
+    public void initPropagation(){
+
+    }
+}
+class CrossEdge implements Function{
+    VarNodePosition u;
+    VarNodePosition v;
+    VarNodePosition w;
+    VarNodePosition z;
+
+    CrossEdge(VarNodePosition w, VarNodePosition z, VarNodePosition u, VarNodePosition v){
+        this.u= u; this.v = v; this.w = w; this.z = z;
+    }
+    
+    @Override
+    public double evaluation(){
+        return 0;
+    }
+     @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        return 0;
+    }
+     @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        
+    }
+    @Override
+
+    public void initPropagation(){
+
     }
 }
 
