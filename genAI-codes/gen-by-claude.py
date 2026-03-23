@@ -1,8 +1,9 @@
-from __future__ import annotations
 import sys
 import math
 import random
 import itertools
+import os
+import time
 
 
 # ── Geometry helpers ──────────────────────────────────────────────────────────
@@ -199,7 +200,7 @@ def simulated_annealing(W, H, n, edges, adj,
             if lexicographic_better(new_obj, best_obj):
                 best_obj = new_obj
                 best_x, best_y = dict(x), dict(y)
-                print(best_obj)
+                # print(best_obj)
         else:
             # Allow uphill moves only on F1 with Metropolis criterion
             delta_f1 = new_obj[0] - cur_obj[0]
@@ -243,51 +244,69 @@ def local_search(x, y, W, H, n, edges, adj, max_rounds=3):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    '''
-    print('start reading input')
-    data = sys.stdin.read().split()
-    print(data)
-    idx = 0
-    W, H = int(data[idx]), int(data[idx+1]); idx += 2
-    n, m = int(data[idx]), int(data[idx+1]); idx += 2
+    timestamp = int(time.time() * 1000)
+    out_dir = f"tests/{timestamp}"
+    os.makedirs(out_dir, exist_ok=True)
+    print(f"Directory: {out_dir} created")
 
-    edges = []
-    adj = {v: [] for v in range(1, n + 1)}
-    for _ in range(m):
-        u, v = int(data[idx]), int(data[idx+1]); idx += 2
-        edges.append((u, v))
-        adj[u].append(v)
-        adj[v].append(u)
-    '''
-    [W, H] = [int(x) for x in sys.stdin.readline().split()]
-    [n, m] = [int(x) for x in sys.stdin.readline().split()]
-    edges = []
-    adj = {v: [] for v in range(1, n + 1)}
-    for i in range(m):
-     [u,v]= [int(x) for x in sys.stdin.readline().split()]
-     edges.append((u, v))
-     adj[u].append(v)
-     adj[v].append(u)  
-    
-    # Phase 1: simulated annealing
-    x, y, obj = simulated_annealing(W, H, n, edges, adj,
-                                     max_iter=100_000,
-                                     T_start=8.0,
-                                     T_end=0.005)
+    for test_idx in range(22):
+        in_file = f"tests/{test_idx}.in"
+        out_file = f"{out_dir}/{test_idx}.out"
+        print(f"test {test_idx} running...")
+        
+        start_time = time.time()
+        
+        try:
+            with open(in_file, 'r') as f:
+                data = f.read().split()
+            
+            if not data:
+                continue
 
-    # Phase 2: local hill-climb to polish
-    x, y, obj = local_search(x, y, W, H, n, edges, adj, max_rounds=5)
+            idx = 0
+            W, H = int(data[idx]), int(data[idx+1])
+            idx += 2
+            n, m = int(data[idx]), int(data[idx+1])
+            idx += 2
 
-    # Output
-    for i in range(1, n + 1):
-        print(x[i], y[i])
+            edges = []
+            adj = {v: [] for v in range(1, n + 1)}
+            for _ in range(m):
+                u, v = int(data[idx]), int(data[idx+1])
+                idx += 2
+                edges.append((u, v))
+                adj[u].append(v)
+                adj[v].append(u)
 
-    # Summary to stderr so it doesn't pollute stdout
-    f1, neg_f2, neg_f3, neg_f4 = obj
-    print(f"\n# F1 (crossings)     = {f1}",         file=sys.stderr)
-    print(f"# F2 (min edge len)  = {-neg_f2:.4f}", file=sys.stderr)
-    print(f"# F3 (min angle deg) = {math.degrees(-neg_f3):.2f}", file=sys.stderr)
-    print(f"# F4 (min node-edge) = {-neg_f4:.4f}", file=sys.stderr)
+            # Phase 1: simulated annealing
+            x, y, obj = simulated_annealing(W, H, n, edges, adj,
+                                            max_iter=100_000,
+                                            T_start=8.0,
+                                            T_end=0.005)
+
+            # Phase 2: local hill-climb to polish
+            x, y, obj = local_search(x, y, W, H, n, edges, adj, max_rounds=5)
+
+            # Output
+            with open(out_file, 'w') as fout:
+                for i in range(1, n + 1):
+                    fout.write(f"{x[i]} {y[i]}\n")
+            
+            print(f"Saved output to {out_file}")
+
+            end_time = time.time()
+            print(f"Time taken: {end_time - start_time:.3f} s")
+
+            f1, neg_f2, neg_f3, neg_f4 = obj
+            print(f"# F1 (crossings)     = {f1}", file=sys.stderr)
+            print(f"# F2 (min edge len)  = {-neg_f2:.4f}", file=sys.stderr)
+            print(f"# F3 (min angle deg) = {math.degrees(-neg_f3):.2f}", file=sys.stderr)
+            print(f"# F4 (min node-edge) = {-neg_f4:.4f}\n", file=sys.stderr)
+            
+        except FileNotFoundError:
+            print(f"File {in_file} not found.")
+        except Exception as e:
+            print(f"Error on test {test_idx}: {e}")
 
 
 if __name__ == "__main__":
