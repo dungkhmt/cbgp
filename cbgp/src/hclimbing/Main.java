@@ -994,7 +994,7 @@ class Angle implements Function {
             double vy = (varNodePosition == v) ? newY : v.y();
             return Geometry.angle(wx, wy, ux, uy, vx, vy);
         }
-        return 0;
+        return -1;
     }
 
     @Override
@@ -1007,13 +1007,8 @@ class Angle implements Function {
             double vx = (varNodePosition == v) ? newX : v.x();
             double vy = (varNodePosition == v) ? newY : v.y();
             cache = Geometry.angle(wx, wy, ux, uy, vx, vy);
-            if (varNodePosition == w)
-                w.assign(newX, newY);
-            else if (varNodePosition == u)
-                u.assign(newX, newY);
-            else if (varNodePosition == v)
-                v.assign(newX, newY);
-        }
+        } else
+            cache = -1;
     }
 
     @Override
@@ -1045,18 +1040,17 @@ class Length implements Function {
         } else if (varNodePosition == v) {
             return new Point2D(newX, newY).distance(new Point2D(u.x(), u.y()));
         }
-        return 0;
+        return -1;
     }
 
     @Override
     public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
         if (varNodePosition == u) {
             cache = new Point2D(newX, newY).distance(new Point2D(v.x(), v.y()));
-            u.assign(newX, newY);
         } else if (varNodePosition == v) {
             cache = new Point2D(newX, newY).distance(new Point2D(u.x(), u.y()));
-            v.assign(newX, newY);
-        }
+        } else
+            cache = -1;
 
     }
 
@@ -1095,7 +1089,7 @@ class Distance implements Function {
             Point2D pv = (varNodePosition == v) ? new Point2D(newX, newY) : new Point2D(v.x(), v.y());
             return pw.distance(new Segment2D(pu, pv));
         }
-        return 0;
+        return -1;
     }
 
     @Override
@@ -1105,13 +1099,8 @@ class Distance implements Function {
             Point2D pu = (varNodePosition == u) ? new Point2D(newX, newY) : new Point2D(u.x(), u.y());
             Point2D pv = (varNodePosition == v) ? new Point2D(newX, newY) : new Point2D(v.x(), v.y());
             cache = pw.distance(new Segment2D(pu, pv));
-            if (varNodePosition == w)
-                w.assign(newX, newY);
-            else if (varNodePosition == u)
-                u.assign(newX, newY);
-            else if (varNodePosition == v)
-                v.assign(newX, newY);
-        }
+        } else
+            cache = -1;
     }
 
     @Override
@@ -1153,7 +1142,7 @@ class CrossEdge implements Function {
             Segment2D s2 = new Segment2D(pu, pv);
             return s1.fastIntersect(s2) ? 1.0 : 0.0;
         }
-        return 0;
+        return -1;
     }
 
     @Override
@@ -1166,15 +1155,8 @@ class CrossEdge implements Function {
             Segment2D s1 = new Segment2D(pw, pz);
             Segment2D s2 = new Segment2D(pu, pv);
             cache = s1.fastIntersect(s2) ? 1.0 : 0.0;
-            if (varNodePosition == w)
-                w.assign(newX, newY);
-            else if (varNodePosition == z)
-                z.assign(newX, newY);
-            else if (varNodePosition == u)
-                u.assign(newX, newY);
-            else if (varNodePosition == v)
-                v.assign(newX, newY);
-        }
+        } else
+            cache = -1;
     }
 
     @Override
@@ -1404,7 +1386,7 @@ class MinAngle implements Function {
                 VarNodePosition uPos = positions.get(current.node);
                 VarNodePosition vPos = positions.get(next.node);
                 Angle angFunc = new Angle(nodePos, uPos, vPos);
-                double angleVal = angFunc.evaluateOneNodeMove(nodePos, newX, newY);
+                double angleVal = angFunc.evaluation();
                 allAngles.remove(angleVal);
             }
         }
@@ -1540,10 +1522,10 @@ class MinAngle implements Function {
 
         double res = evaluation();
 
+        updateNodeAngles(node, oldX, oldY);
         allAngles.clear();
         for (Double val : oldAllAngles)
             allAngles.add(val);
-        updateNodeAngles(node, oldX, oldY);
 
         return res;
     }
@@ -1697,7 +1679,7 @@ class NumberIntersectionEdges implements Function {
 
     @Override
     public double evaluation() {
-        return totalIntersections;
+        return -totalIntersections;
     }
 
     @Override
@@ -1712,7 +1694,7 @@ class NumberIntersectionEdges implements Function {
             for (Edge e : nodeEdges) {
                 removed += intersectMap.get(encode(e)).size();
             }
-            return totalIntersections - removed;
+            return -totalIntersections + removed;
         }
 
         Node node = g.getNode(varNodePosition.id);
@@ -1737,7 +1719,7 @@ class NumberIntersectionEdges implements Function {
                 }
             }
         }
-        return totalIntersections - removed + addedCount;
+        return -totalIntersections + removed - addedCount;
     }
 
     @Override
@@ -2381,201 +2363,6 @@ class DoubleLinkedList<E> {
         return list;
     }
 
-}
-
-class GraphFace {
-    Graph g;
-    DoubleLinkedList<Edge> face;
-    // Map<Edge, LinkedNode<Edge>> edgeMap;
-    // Map<Node, Edge> next, prev;
-
-    GraphFace(Graph g, List<Node> nodes, DoubleLinkedList<Edge> face, Map<Edge, LinkedNode<Edge>> edgeMap) {
-        this.g = g;
-        // this.nodes = nodes;
-        this.face = face;
-        // this.edgeMap = edgeMap;
-        // next = new HashMap<>();
-        // prev = new HashMap<>();
-        // LinkedNode<Edge> current = face.getFirst();
-        // for (int i = 0; i < face.size(); i++) {
-        // Edge edge = current.value;
-        // Node fromNode = edge.fromNode;
-        // Node toNode = edge.toNode;
-        // next.put(fromNode, edge);
-        // prev.put(toNode, edge);
-        // current = current.next();
-        // }
-    }
-
-    GraphFace(Graph g, DoubleLinkedList<Edge> face) {
-        this.g = g;
-        this.face = face;
-    }
-
-    // GraphFace split(Node u, Node v) {
-    // Edge newEdgeU = g.addEdge(u, v);
-    // Edge newEdgeV = g.addEdge(v, u);
-    // Edge edge = next.get(u);
-    // LinkedNode<Edge> edgeNode = edgeMap.get(edge);
-    // if (edgeNode == null) {
-    // return null;
-    // }
-
-    // DoubleLinkedList<Edge> newFace = new DoubleLinkedList<>();
-    // LinkedNode<Edge> current = edgeNode;
-    // do {
-    // newFace.add(current.value);
-    // current = current.next();
-    // } while (current != edgeNode);
-
-    // return new GraphFace(g, nodes, newFace, edgeMap);
-    // }
-    GraphFace split(LinkedNode<Edge> u, LinkedNode<Edge> v) {
-        if (u == null || v == null || u == v) {
-            return null;
-        }
-        Edge newEdgeU = g.addEdge(u.value.fromNode, v.value.fromNode);
-        Edge newEdgeV = g.addEdge(v.value.fromNode, u.value.fromNode);
-        DoubleLinkedList<Edge> newFace = new DoubleLinkedList<>();
-        LinkedNode<Edge> current = u;
-        boolean check = false;
-        do {
-            LinkedNode<Edge> nextNode = current.next();
-            face.remove(current);
-            newFace.add(current);
-            current = nextNode;
-            if (current == null) {
-                check = true;
-                if ((current = face.getFirst()) == null) {
-                    break;
-                }
-            }
-        } while (current != v);
-
-        if (check)
-            face.addFirst(newEdgeU);
-        else
-            face.insert(current.prev(), newEdgeU);
-        newFace.add(newEdgeV);
-        return new GraphFace(g, newFace);
-    }
-}
-
-class PlanarGraphGenerator {
-    public static Graph generatePlanarGraph(int n, int m) {
-        if (n < 1)
-            n = 1;
-        if (m < n - 1)
-            m = n - 1;
-        if (m > n * 3 - 6)
-            m = n * 3 - 6;
-
-        Random random = java.util.concurrent.ThreadLocalRandom.current();
-        List<Node> nodes = new ArrayList<>();
-        List<Integer> degrees = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            nodes.add(new Node(i));
-            degrees.add(0);
-        }
-
-        List<DoubleLinkedList<Edge>> adj = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            adj.add(new DoubleLinkedList<>());
-        }
-
-        // build tree
-        Graph graph = new Graph(nodes);
-        Set<Integer> usedEdges = new HashSet<>();
-        for (int i = 1; i < n; i++) {
-            int j = random.nextInt(i);
-            usedEdges.add(j * n + i);
-            DoubleLinkedList<Edge> edge = adj.get(j);
-            Edge eu = graph.addEdge(nodes.get(i), nodes.get(j));
-            Edge ev = graph.addEdge(nodes.get(j), nodes.get(i));
-
-            if (degrees.get(i) > 1) {
-                // LinkedNode<Integer> node = edge.getFirst();
-                adj.get(i).add(eu);
-                degrees.set(i, degrees.get(i) + 1);
-                degrees.set(j, degrees.get(j) + 1);
-                edge.insert(random.nextInt(edge.size()), ev);
-            } else {
-                degrees.set(i, degrees.get(i) + 1);
-                degrees.set(j, degrees.get(j) + 1);
-                adj.get(i).add(eu);
-                edge.add(ev);
-            }
-            // System.err.println(i + " " + j);
-        }
-
-        DoubleLinkedList<Edge> faceEdge = new DoubleLinkedList<>(graph.dfs(nodes.get(0), adj));
-        // LinkedNode<Edge> current = faceEdge.getFirst();
-        // Map<Edge, LinkedNode<Edge>> edgeMap = new HashMap<>();
-        // for (int i = 0; i < faceEdge.size(); i++) {
-        // Edge edge = current.value;
-        // edgeMap.put(edge, current);
-        // current = current.next();
-        // }
-
-        DoubleLinkedList<GraphFace> faces = new DoubleLinkedList<>(new GraphFace(graph, faceEdge));
-        for (int i = n - 1; i < m; i++) {
-            // System.err.printf("n=%d, i=%d, faces.size()=%d\n", n, i, faces.size());
-            GraphFace face = faces.removeFirst().value;
-            GraphFace newFace = null;
-
-            List<LinkedNode<Edge>> faceEdges = face.face.toNodeList();
-            // for (LinkedNode<Edge> edge : faceEdges) {
-            // System.err.printf("(%d %d) ", edge.value.fromNode.id, edge.value.toNode.id);
-            // }
-            // System.err.println();
-
-            Collections.shuffle(faceEdges, random);
-
-            int p = faceEdges.size();
-            boolean found = false;
-            for (int j = 1; !found && j < p; j++) {
-                LinkedNode<Edge> u = faceEdges.get(j);
-                LinkedNode<Edge> nextU = u.next();
-                if (nextU == null) {
-                    nextU = face.face.getFirst();
-                }
-                for (int k = 0; k < j; k++) {
-                    LinkedNode<Edge> v = faceEdges.get(k);
-                    LinkedNode<Edge> nextV = v.next();
-                    if (nextV == null) {
-                        nextV = face.face.getFirst();
-                    }
-                    if (u == v || nextU == v || nextV == u || u.value.fromNode.id == v.value.fromNode.id) {
-                        continue;
-                    }
-                    int eId = Math.min(u.value.fromNode.id, v.value.fromNode.id) * n +
-                            Math.max(u.value.fromNode.id, v.value.fromNode.id);
-                    if (usedEdges.contains(eId)) {
-                        continue;
-                    }
-
-                    usedEdges.add(eId);
-                    newFace = face.split(u, v);
-                    // System.err.println(u.value.fromNode.id + " " + u.value.toNode.id + " " +
-                    // v.value.fromNode.id + " " + v.value.toNode.id);
-                    if (newFace != null) {
-                        found = true;
-                        break;
-                    }
-                }
-            }
-
-            if (face.face.size() > 3) {
-                faces.add(face);
-            }
-            if (newFace.face.size() > 3) {
-                faces.add(newFace);
-            }
-        }
-        // faceEdge.addAll(graph.dfs(nodes.get(0)));
-
-        return graph;
-    }
 }
 
 class MoveNode {
@@ -3593,624 +3380,10 @@ class NeighborSwap implements NeighborExplorer {
     }
 }
 
-class PQTree {
-    private int n, root, tot, top;
-    private int[] pool, type, color;
-    private List<List<Integer>> adj;
-    private List<Integer> ans;
-    private String s;
-
-    public PQTree() {
-    }
-
-    public PQTree(int n) {
-        this.n = n;
-        root = tot = n + 1;
-        adj = new ArrayList<>(n + 2);
-        ans = new ArrayList<>();
-        for (int i = 0; i <= n + 1; i++)
-            adj.add(new ArrayList<>());
-        for (int i = 1; i <= n; i++)
-            adj.get(root).add(i);
-        pool = new int[n + 1];
-        type = new int[n + 1];
-        color = new int[n + 1];
-        s = "";
-    }
-
-    public void insert(String s) {
-        this.s = s;
-        dfs(root);
-        work(root);
-        while (adj.get(root).size() == 1) {
-            root = adj.get(root).get(0);
-        }
-        remove(root);
-    }
-
-    public List<Integer> getAns() {
-        dfsAns(root);
-        return ans;
-    }
-
-    private void fail() {
-
-    }
-
-    private int newNode(int y) {
-        int x = top > 0 ? pool[top--] : ++tot;
-        type[x] = y;
-        return x;
-    }
-
-    private void delete(int u) {
-        adj.get(u).clear();
-        pool[++top] = u;
-    }
-
-    private void dfs(int u) {
-        if (u > 0 && u <= n) {
-            color[u] = s.charAt(u - 1) == '1' ? 1 : 0;
-            return;
-        }
-
-        boolean c0 = false, c1 = false;
-        for (int v : adj.get(u)) {
-            dfs(v);
-            if (color[v] != 1)
-                c0 = true;
-            if (color[v] > 0)
-                c1 = true;
-        }
-
-        if (c0 && c1) {
-            color[u] = 2;
-        } else if (c0) {
-            color[u] = 0;
-        } else if (c1) {
-            color[u] = 1;
-        }
-    }
-
-    private boolean check(List<Integer> v) {
-        int j = -1;
-        for (int i = 0; i < v.size(); i++) {
-            if (color[v.get(i)] == 2) {
-                if (j != -1)
-                    return false;
-                j = i;
-                break;
-            }
-        }
-
-        if (j == -1) {
-            for (int i = 0; i < v.size(); i++) {
-                if (color[v.get(i)] > 0) {
-                    j = i;
-                    break;
-                }
-            }
-        }
-
-        for (int i = 0; i < j; i++) {
-            if (color[v.get(i)] > 0) {
-                return false;
-            }
-        }
-
-        for (int i = j + 1; i < v.size(); i++) {
-            if (color[v.get(i)] != 1) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private List<Integer> split(int u) {
-        if (color[u] == 2) {
-            List<Integer> v = new ArrayList<>();
-            v.add(u);
-            return v;
-        }
-
-        List<Integer> ng = new ArrayList<>();
-        if (type[u] == 1) {
-            if (!check(adj.get(u))) {
-                Collections.reverse(adj.get(u));
-                if (!check(adj.get(u))) {
-                    fail();
-                }
-            }
-            for (int v : adj.get(u)) {
-                if (color[u] != 2) {
-                    ng.add(v);
-                } else {
-                    List<Integer> w = split(v);
-                    ng.addAll(w);
-                }
-            }
-        } else {
-            List<List<Integer>> son = new ArrayList<>();
-            for (int col = 0; col < 3; col++) {
-                son.add(new ArrayList<>());
-            }
-            for (int v : adj.get(u)) {
-                son.get(color[v]).add(v);
-            }
-            if (son.get(2).size() > 1) {
-                fail();
-            }
-            if (!son.get(0).isEmpty()) {
-                int n0 = newNode(0);
-                // adj.set(n0, son.get(0));
-                adj.get(n0).addAll(son.get(0));
-                ng.add(n0);
-            }
-            if (!son.get(2).isEmpty()) {
-                List<Integer> w = split(son.get(2).get(0));
-                ng.addAll(w);
-            }
-            if (!son.get(1).isEmpty()) {
-                int n1 = newNode(1);
-                // adj.set(n1, son.get(1));
-                adj.get(n1).addAll(son.get(1));
-                ng.add(n1);
-            }
-        }
-
-        delete(u);
-        return ng;
-
-    }
-
-    private void work(int u) {
-        if (color[u] != 2) {
-            return;
-        }
-        if (type[u] > 0) {
-            int l = (int) 1e9, r = (int) -1e9;
-            for (int i = 0; i < adj.get(u).size(); i++) {
-                if (color[adj.get(u).get(i)] > 0) {
-                    l = Math.min(l, i);
-                    r = Math.max(r, i);
-                }
-            }
-
-            for (int i = l + 1; i < r; i++) {
-                if (color[adj.get(u).get(i)] != 1) {
-                    fail();
-                }
-            }
-
-            if (l == r && color[adj.get(u).get(l)] == 2) {
-                work(adj.get(u).get(l));
-                return;
-            }
-
-            List<Integer> ng = new ArrayList<>();
-            for (int i = 0; i < l; i++) {
-                ng.add(adj.get(u).get(i));
-            }
-            List<Integer> w = split(adj.get(u).get(l));
-            ng.addAll(w);
-            for (int i = l + 1; i < r; i++) {
-                ng.add(adj.get(u).get(i));
-            }
-            if (l != r) {
-                w = split(adj.get(u).get(r));
-                Collections.reverse(w);
-                ng.addAll(w);
-            }
-            for (int i = r + 1; i < adj.get(u).size(); i++) {
-                ng.add(adj.get(u).get(i));
-            }
-            // adj.set(u, ng);
-            adj.get(u).clear();
-            adj.get(u).addAll(ng);
-            return;
-        } else {
-            List<List<Integer>> son = new ArrayList<>();
-            for (int col = 0; col < 3; col++) {
-                son.add(new ArrayList<>());
-            }
-            for (int v : adj.get(u)) {
-                son.get(color[v]).add(v);
-            }
-
-            if (son.get(1).isEmpty() && son.get(2).size() == 1) {
-                work(son.get(2).get(0));
-                return;
-            }
-
-            adj.get(u).clear();
-            if (son.get(2).size() > 2) {
-                fail();
-            }
-
-            adj.get(u).addAll(son.get(0));
-            int n1 = newNode(1);
-            adj.get(u).add(n1);
-            if (!son.get(2).isEmpty()) {
-                List<Integer> w = split(son.get(2).get(0));
-                adj.get(n1).addAll(w);
-            }
-            if (!son.get(1).isEmpty()) {
-                int n2 = newNode(0);
-                adj.get(n1).add(n2);
-                adj.get(n2).addAll(son.get(1));
-            }
-
-            if (son.get(2).size() > 1) {
-                List<Integer> w = split(son.get(2).get(1));
-                Collections.reverse(w);
-                adj.get(n1).addAll(w);
-            }
-        }
-    }
-
-    private void remove(int u) {
-        for (int v : adj.get(u)) {
-            int tv = v;
-            while (adj.get(tv).size() == 1) {
-                int t = tv;
-                tv = adj.get(tv).get(0);
-                delete(t);
-            }
-            v = tv;
-            remove(v);
-        }
-    }
-
-    private void dfsAns(int u) {
-        if (u > 0 && u <= n) {
-            ans.add(u);
-            return;
-        }
-        for (int v : adj.get(u)) {
-            dfsAns(v);
-        }
-    }
-}
-
-class STNumbering {
-    STNumbering() {
-    }
-
-    int n, s, t;
-    private int[] tin, low, parent, pos, ans;
-    private boolean[] b, vis;
-    private int timer;
-    private List<List<Integer>> adj, st;
-    private int count = 0;
-
-    STNumbering(int n, int s, int t) {
-        this.n = n;
-        this.s = s;
-        this.t = t;
-        tin = new int[n + 1];
-        low = new int[n + 1];
-        parent = new int[n + 1];
-        pos = new int[n + 1];
-        b = new boolean[n + 1];
-        timer = 0;
-        ans = new int[n + 1];
-        vis = new boolean[n + 1];
-        // adj = new ArrayList<>();
-        // for (int i = 0; i <= n; i++) {
-        // adj.add(new ArrayList<>());
-        // }
-        st = new ArrayList<>();
-        for (int i = 0; i <= n; i++) {
-            st.add(new ArrayList<>());
-        }
-    }
-
-    // STNumbering(int n, int s, int t, List<List<Integer>> adj) {
-    // // this.n = n;
-    // // this.s = s;
-    // // this.t = t;
-    // // tin = new int[n + 1];
-    // // low = new int[n + 1];
-    // // parent = new int[n + 1];
-    // // pos = new int[n + 1];
-    // // b = new boolean[n + 1];
-    // // timer = 0;
-    // // st = new ArrayList<>();
-    // // for (int i = 0; i <= n; i++) {
-    // // st.add(new ArrayList<>());
-    // // }
-    // this(n, s, t);
-    // this.adj = adj;
-    // }
-
-    STNumbering(int n, int s, int t, List<DoubleLinkedList<Edge>> adj) {
-        this(n, s, t);
-        this.adj = new ArrayList<>();
-        for (int i = 0; i <= n; i++) {
-            this.adj.add(new ArrayList<>());
-        }
-
-        for (int i = 0; i < n; i++) {
-            DoubleLinkedList<Edge> e = adj.get(i);
-            LinkedNode<Edge> cur = e.getFirst();
-            while (cur != null) {
-                int v = cur.value.toNode.id;
-                this.adj.get(i).add(v);
-                cur = cur.next();
-            }
-        }
-        this.adj.get(s).add(t);
-    }
-
-    private void tarjan(int u, int p) {
-        tin[u] = low[u] = ++timer;
-        pos[timer] = u;
-        b[u] = u == t;
-        parent[u] = p;
-
-        for (int v : adj.get(u)) {
-            if (v == p)
-                continue;
-            if (tin[v] == 0) {
-                tarjan(v, u);
-                b[u] |= b[v];
-                low[u] = Math.min(low[u], low[v]);
-                if (low[v] >= tin[u]) {
-                    count++;
-                }
-            } else {
-                low[u] = Math.min(low[u], tin[v]);
-            }
-        }
-
-        if (!b[u]) {
-            st.get(p).add(u);
-            st.get(pos[low[u]]).add(u);
-        }
-    }
-
-    private void dfs(int u) {
-        if (vis[u]) {
-            return;
-        }
-        vis[u] = true;
-        ans[u] = count++;
-        for (int v : st.get(u)) {
-            dfs(v);
-        }
-    }
-
-    private void solve(int u) {
-        if (u == -1) {
-            return;
-        }
-        solve(parent[u]);
-        dfs(u);
-    }
-
-    public boolean process() {
-        timer = count = 0;
-        tarjan(s, -1);
-        if (count != 1) {
-            return false;
-        }
-        for (int i = 0; i < n; i++) {
-            if (tin[i] == 0) {
-                return false;
-            }
-        }
-
-        count = 0;
-        solve(t);
-        return true;
-    }
-
-    public int[] getAns() {
-        return ans;
-    }
-}
-
 public class Main {
     static final int numDirections = 8;
     static final Integer[] dirX = { 0, 1, 0, -1, 1, 1, -1, -1 };
     static final Integer[] dirY = { 1, 0, -1, 0, 1, -1, -1, 1 };
-
-    public static void planarGen() throws IOException {
-        List<Integer> N = List.of(10, 20, 50, 100, 200);
-        Random random = java.util.concurrent.ThreadLocalRandom.current();
-
-        for (int i = 0; i < N.size(); i++) {
-            Kattio io = new Kattio(null, "tests/" + i + ".in");
-
-            int n = N.get(i);
-            int m = random.nextInt(Math.min(n * 3 - 6, n * 2), n * 3 - 5);
-            Graph g = PlanarGraphGenerator.generatePlanarGraph(n, m);
-            io.printf("%d %d\n%d %d\n", n, n, n, m);
-            Set<Integer> used = new HashSet<>();
-            List<Edge> edges = g.getEdges();
-            Collections.shuffle(edges, random);
-            for (Edge edge : edges) {
-                int eId = Math.min(edge.fromNode.id, edge.toNode.id) * n + Math.max(edge.fromNode.id, edge.toNode.id);
-                if (used.contains(eId))
-                    continue;
-                used.add(eId);
-                io.printf("%d %d\n", edge.fromNode.id + 1, edge.toNode.id + 1);
-            }
-
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", i, n, n, n, m);
-        }
-    }
-
-    public static void connectedGen() throws IOException {
-        List<Integer> N = List.of(20);
-        List<Integer> M = List.of(50);
-        int start = 20;
-        for (int i = 0; i < N.size(); i++) {
-            Kattio io = new Kattio(null, "tests/" + (i + start) + ".in");
-
-            int n = N.get(i), m = M.get(i);
-            io.printf("%d %d\n%d %d\n", n, n, n, m);
-            Set<Integer> used = new HashSet<>();
-            Random random = java.util.concurrent.ThreadLocalRandom.current();
-            for (int u = 1; u < n; u++) {
-                int v = random.nextInt(u);
-                io.printf("%d %d\n", u + 1, v + 1);
-                int eId = Math.min(u, v) * n + Math.max(u, v);
-                used.add(eId);
-            }
-            int cnt = n - 1;
-            while (cnt < m) {
-                int u = random.nextInt(n), v = random.nextInt(n);
-                if (u == v)
-                    continue;
-                int eId = Math.min(u, v) * n + Math.max(u, v);
-                if (used.contains(eId))
-                    continue;
-                used.add(eId);
-                io.printf("%d %d\n", u + 1, v + 1);
-                cnt++;
-            }
-
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", i, n, n, n, m);
-        }
-    }
-
-    public static void completeGen() throws IOException {
-        List<Integer> N = List.of(5, 6);
-
-        int start = 15;
-        for (int c = 0; c < N.size(); c++) {
-            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
-
-            int n = N.get(c);
-            int m = n * (n - 1) >> 1;
-            io.printf("%d %d\n%d %d\n", n, n, n, m);
-            for (int i = 0; i < n; i++) {
-                for (int j = i + 1; j < n; j++) {
-                    io.printf("%d %d\n", i + 1, j + 1);
-                }
-            }
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", c, n, n, n, m);
-        }
-    }
-
-    public static void circleGen() throws IOException {
-        List<Integer> N = List.of(10, 20);
-
-        int start = 7;
-        for (int c = 0; c < N.size(); c++) {
-            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
-
-            int n = N.get(c);
-            int m = n;
-            io.printf("%d %d\n%d %d\n", n, n, n, m);
-            for (int i = 0; i < n; i++) {
-                io.printf("%d %d\n", i + 1, (i + 1) % n + 1);
-            }
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", c, n, n, n, m);
-        }
-    }
-
-    public static void completeBipartiteGen() throws IOException {
-        List<Integer> N = List.of(6, 8);
-
-        int start = 11;
-        for (int c = 0; c < N.size(); c++) {
-            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
-
-            int n = N.get(c);
-            int m = n * n >> 2;
-            io.printf("%d %d\n%d %d\n", n, n, n, m);
-            for (int i = 0; i < (n / 2); i++) {
-                for (int j = n / 2; j < n; j++) {
-                    io.printf("%d %d\n", i + 1, j + 1);
-                }
-            }
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", c, n, n, n, m);
-        }
-    }
-
-    public static void wheelGen() throws IOException {
-        List<Integer> N = List.of(6, 11);
-
-        int start = 17;
-        for (int c = 0; c < N.size(); c++) {
-            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
-
-            int n = N.get(c);
-            int m = n - 1 << 1;
-            io.printf("%d %d\n%d %d\n", n, n, n, m);
-            for (int i = 1; i < n; i++) {
-                io.printf("%d %d\n", 1, i + 1);
-            }
-            for (int i = 1; i < n - 1; i++) {
-                io.printf("%d %d\n", i + 1, i + 2);
-            }
-            io.printf("%d %d\n", n, 2);
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", start + c, n, n, n, m);
-        }
-    }
-
-    public static void gridGen() throws IOException {
-        List<Integer> N = List.of(5, 7, 10);
-        List<Integer> M = List.of(5, 7, 10);
-
-        int start = 17;
-        for (int c = 0; c < N.size(); c++) {
-            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
-
-            int n = N.get(c), m = M.get(c);
-            int edge = n * (m - 1) + m * (n - 1);
-            io.printf("%d %d\n%d %d\n", n, m, n * m, edge);
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < m; j++) {
-                    int u = i * m + j + 1;
-                    if (i + 1 < n) {
-                        io.printf("%d %d\n", u, u + m);
-                    }
-                    if (j + 1 < m) {
-                        io.printf("%d %d\n", u, u + 1);
-                    }
-                }
-            }
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", start + c, n, m, n * m, edge);
-        }
-    }
-
-    public static void ncubesGen() throws IOException {
-        List<Integer> N = List.of(4, 5, 3);
-
-        int start = 19;
-        for (int c = 0; c < N.size(); c++) {
-            Kattio io = new Kattio(null, "tests/" + (start + c) + ".in");
-
-            int n = 1 << N.get(c);
-            int m = N.get(c) << (N.get(c) - 1);
-            io.printf("%d %d\n%d %d\n", n, n, n, m);
-            for (int i = 0; i < n; i++) {
-                // for (int j = 0; j < i; j++) {
-                // if (Integer.bitCount(i ^ j) == 1) {
-                // io.printf("%d %d\n", i + 1, j + 1);
-                // }
-                // }
-                for (int j = 0; j < N.get(c); j++) {
-                    if ((i >> j & 1) == 1) {
-                        io.printf("%d %d\n", i + 1, (i ^ 1 << j) + 1);
-                    }
-                }
-            }
-            io.close();
-            System.out.printf("Test %d: H=%d, W=%d, n=%d, m=%d\n", start + c, n, n, n, m);
-        }
-    }
 
     public static void generateInitialSolution(int ROW, int COL, CBLSGPModel model, Graph G,
             List<DoubleLinkedList<Edge>> adj) {
@@ -4391,7 +3564,7 @@ public class Main {
         int check = 0;
         try {
             check = io.nextInt();
-            // check = 0;
+            check = 0;
             if (check == 1) {
                 for (int i = 0; i < n; i++) {
                     int x = io.nextInt() * 2;
@@ -4424,13 +3597,13 @@ public class Main {
         // F0.add(F3);
         LexMultiFunctions F = new LexMultiFunctions();
         F.add(F3); // NumberOfIntersectionEdges
-        F.add(F4); // MinDistanceNodeEdge
         F.add(F2); // MinAngle
+        F.add(F1); // MinDistanceEdge
+        F.add(F4); // MinDistanceNodeEdge
         // F.add(F2a); // SumAngle
         // F.add(F5); // EdgeLengthVariance
         // F.add(F7); // MinDistance2Nodes
         // F.add(F6); // NodePosVariance
-        F.add(F1); // MinDistanceEdge
         // F.add(F4a); // SumDistanceNodeEdge
         // F.add(F1a); // SumDistanceEdge
 
@@ -4456,7 +3629,7 @@ public class Main {
 
         boolean firstImprovement = true;
         List<NeighborExplorer> explorers = new ArrayList<>();
-        final int numRandom = 500;
+        final int numRandom = 5000;
         explorers.add(new CentroidMove(ROW, COL, G, model, F, varPosList, numRandom));
         explorers.add(new NeighborSwap(G, model, F, numRandom));
         explorers.add(new MinRegretNode(ROW, COL, G, model, F, varPosList, numRandom));
@@ -4471,7 +3644,7 @@ public class Main {
         explorers.add(new OneRandomROW(ROW, G, F, varPosList, numRandom));
         explorers.add(new TwoRandomSwap(G, model, F, varPosList, numRandom));
         explorers.add(new ThreeRandomExchange(G, model, F, varPosList, numRandom));
-        final int maxIterations = 100;
+        final int maxIterations = 2000;
         // final int maxIterations = 0;
         for (int iter = 0; iter < maxIterations; iter++) {
             Move selectedMove = null;
@@ -4626,9 +3799,10 @@ public class Main {
                     // for (int i = 5; i < 10; i++) test1(i);
                     // Integer[] tests = {5, 6, 7, 8, 9};
                     // Integer[] tests = {10, 11, 12, 13, 14};
-                    // Integer[] tests = {16};
+                    Integer[] tests = { 16 };
                     // Integer[] tests = {17, 18, 19};
-                    Integer[] tests = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 };
+                    // Integer[] tests = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                    // 17, 18, 19, 20, 21 };
                     for (int i : tests)
                         test1(i);
                 } else {
