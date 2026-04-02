@@ -1,0 +1,5 @@
+F1 (crossings)     = 0
+F2 (min edge len)  = 5.3852
+F3 (min angle deg) = 7.80
+F4 (min node-edge) = 0.0750
+Time taken: 66.108 s

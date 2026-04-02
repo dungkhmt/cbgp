@@ -249,9 +249,10 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     print(f"Directory: {out_dir} created")
 
-    for test_idx in range(22):
+    for test_idx in range(4, 22):
         in_file = f"tests/{test_idx}.in"
         out_file = f"{out_dir}/{test_idx}.out"
+        log_file = f"{out_dir}/{test_idx}.log"
         print(f"test {test_idx} running...")
         
         start_time = time.time()
@@ -271,12 +272,21 @@ def main():
 
             edges = []
             adj = {v: [] for v in range(1, n + 1)}
+            offset = 0
             for _ in range(m):
                 u, v = int(data[idx]), int(data[idx+1])
+                if u == 0 or v == 0:
+                    offset = 1
                 idx += 2
                 edges.append((u, v))
+            new_edges = []
+            for u, v in edges:
+                u += offset
+                v += offset
+                new_edges.append((u, v))
                 adj[u].append(v)
                 adj[v].append(u)
+            edges = new_edges
 
             # Phase 1: simulated annealing
             x, y, obj = simulated_annealing(W, H, n, edges, adj,
@@ -290,7 +300,7 @@ def main():
             # Output
             with open(out_file, 'w') as fout:
                 for i in range(1, n + 1):
-                    fout.write(f"{x[i]} {y[i]}\n")
+                    fout.write(f"{i - 1}: ({x[i]}, {y[i]}), ")
             
             print(f"Saved output to {out_file}")
 
@@ -302,6 +312,13 @@ def main():
             print(f"# F2 (min edge len)  = {-neg_f2:.4f}", file=sys.stderr)
             print(f"# F3 (min angle deg) = {math.degrees(-neg_f3):.2f}", file=sys.stderr)
             print(f"# F4 (min node-edge) = {-neg_f4:.4f}\n", file=sys.stderr)
+
+            with open(log_file, 'w') as flog:
+                flog.write(f"F1 (crossings)     = {f1}\n")
+                flog.write(f"F2 (min edge len)  = {-neg_f2:.4f}\n")
+                flog.write(f"F3 (min angle deg) = {math.degrees(-neg_f3):.2f}\n")
+                flog.write(f"F4 (min node-edge) = {-neg_f4:.4f}\n")
+                flog.write(f"Time taken: {end_time - start_time:.3f} s\n")
             
         except FileNotFoundError:
             print(f"File {in_file} not found.")
