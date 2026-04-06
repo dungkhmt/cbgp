@@ -502,6 +502,8 @@ interface Function {
 
     public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
 
+    public double evaluateTwoNodesMove(VarNodePosition node1, int newX1, int newY1, VarNodePosition node2, int newX2, int newY2);
+
     public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY);
 
     public void initPropagation();
@@ -1002,6 +1004,49 @@ class TreeMultiset<T extends Comparable<T>> implements Iterable<T> {
     }
 }
 
+
+class SumFunction implements Function {
+    List<Function> functions;
+    double cache = -1;
+
+    SumFunction(List<Function> functions) {
+        this.functions = functions;
+    }
+
+    @Override
+    public double evaluation() {
+        if (cache >= 0)
+            return cache;
+        double sum = 0;
+        for (Function f : functions)
+            sum += f.evaluation();
+        return cache = sum;
+    }
+
+    @Override
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        double sum = 0;
+        for (Function f : functions) {
+            double val = f.evaluateOneNodeMove(varNodePosition, newX, newY);
+            sum += val;
+        }
+        return sum;
+    }
+
+    @Override
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY) {
+        for (Function f : functions) {
+            f.propagateOneNodeMove(varNodePosition, newX, newY);
+        }
+        cache = -1;
+    }
+
+    @Override
+    public void initPropagation() {
+        for (Function f : functions)
+            f.initPropagation();
+    }
+}   
 class Angle implements Function {
     VarNodePosition w;
     VarNodePosition u;
@@ -3296,12 +3341,26 @@ class LexMultiFunctions {
             vals.add(f.evaluateOneNodeMove(v, x, y));
         return new LexMultiValues(vals);
     }
+    public LexMultiValues evaluateTwoNodesMove(VarNodePosition v1, int x1, int y1, VarNodePosition v2, int x2, int y2) {
+        List<Double> vals = new ArrayList<>();
+        for (Function f : F)
+            vals.add(f.evaluateTwoNodesMove(v1, x1, y1, v2, x2, y2));
+        return new LexMultiValues(vals);
+    }
+
 
     public void propagateOneNodeMove(VarNodePosition v, int x, int y) {
         for (Function f : F)
             f.propagateOneNodeMove(v, x, y);
     }
 
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (Function f : F) {
+            sb.append(String.format("%.10f ", f.evaluation()));
+        }
+        return sb.toString().trim();
+    }
 }
 
 class LinkedNode<E> {
@@ -3643,6 +3702,76 @@ interface NeighborExplorer {
     Move explore(boolean firstImprovement);
 }
 
+class VNSNeighborhood implements NeighborExplorer {
+
+    private final int ROW, COL;
+    private final Graph G;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private final int counter;
+
+    public VNSNeighborhood(int ROW, int COL, Graph G, LexMultiFunctions F, List<VarNodePosition> varNodeList, int counter) {
+        this.ROW = ROW;
+        this.COL = COL;
+        this.G = G;
+        this.F = F;
+        this.varNodeList = varNodeList;
+        this.counter = counter;
+    }
+
+
+
+    @Override
+    public Move explore(boolean firstImprovement) {
+        boolean found = false;
+        LexMultiValues bestEval = F.evaluation();
+        Move selectedMove = null;
+        // FIRST try with one node move
+        for(VarNodePosition varNodePosition : varNodeList) {
+            for(int x = 0; x <= COL; x++) {
+                for(int y = 0; y <= ROW; y++) {
+                    if (x == varNodePosition.x() && y == varNodePosition.y()) continue;
+                    LexMultiValues current = F.evaluateOneNodeMove(varNodePosition, x, y);
+                    if (current.better(bestEval)) {
+                        Move move = new Move(varNodePosition, x, y, current);
+                        selectedMove = move;    
+                        if (firstImprovement) {
+                            return move;                            
+                        }           
+                        bestEval = current;             
+                    }
+                }
+                if (found) break;
+            }
+        }   
+        // SECOND try with two nodes move
+        for(VarNodePosition varNodePosition1 : varNodeList) {
+            for(VarNodePosition varNodePosition2 : varNodeList) {
+                if (varNodePosition1.id >= varNodePosition2.id) continue;
+                for(int x1 = 0; x1 <= COL; x1++) {
+                    for(int y1 = 0; y1 <= ROW; y1++) {
+                        if (x1 == varNodePosition1.x() && y1 == varNodePosition1.y()) continue;
+                        for(int x2 = 0; x2 <= COL; x2++) {
+                            for(int y2 = 0; y2 <= ROW; y2++) {
+                                if (x2 == varNodePosition2.x() && y2 == varNodePosition2.y()) continue;
+                                LexMultiValues current = F.evaluateTwoNodesMove(varNodePosition1, x1, y1, varNodePosition2, x2, y2);
+                                Move move = new Move(List.of(new MoveNode(varNodePosition1, x1, y1), new MoveNode(varNodePosition2, x2, y2)), current);
+                                if (current.better(bestEval)) {                                    
+                                    selectedMove = move;    
+                                    if (firstImprovement) {
+                                        return move;                            
+                                    }           
+                                    bestEval = current;             
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return selectedMove;
+    }
+}   
 class OneRandomNeighborhood implements NeighborExplorer {
     private final int ROW, COL;
     private final Graph G;
@@ -4818,7 +4947,8 @@ public class Main {
     public static String dir;
 
     @SuppressWarnings("unused")
-    public static void test1(int tt) throws IOException {
+    public static void test1(int tt, int timeLimit, int maxIterations) throws IOException {
+        // timeLimit is in milliseconds
         long startTime = System.currentTimeMillis();
         Kattio io = new Kattio("tests/" + tt + ".in", dir + "/" + tt + ".out");
         System.err.println("test " + tt + " running...");
@@ -4993,11 +5123,14 @@ public class Main {
         // perturbationExplorers.add(new TwoRandomSwap(G, model, F, varPosList, numRandom / 2));
         // perturbationExplorers.add(new ThreeRandomExchange(G, model, F, varPosList, numRandom / 2));
 
-        final int maxIterations = 10000;
+        //final int maxIterations = 10000;
         int stagnantCount = 0;    
         int maxStagnant = 300;     
 
         for (int iter = 0; iter < maxIterations; iter++) {
+            if(System.currentTimeMillis() - startTime > timeLimit) { //timeout check
+                break;
+            }
             Move selectedMove = null;
 
             if (stagnantCount >= maxStagnant) {
@@ -5080,6 +5213,7 @@ public class Main {
                         str.append(f).append("\n");
                     }
                     System.err.println(str.toString());
+                    System.out.println("Step " + iter + "(" + (System.currentTimeMillis() - startTime) + " ms): " + F.toString());
                 } else {
                     stagnantCount++;
                 }
@@ -5260,10 +5394,10 @@ public class Main {
                     // Integer[] tests = {10, 11, 12, 13, 14};
                     // Integer[] tests = { 16 };
                     // Integer[] tests = {17, 18, 19};
-                    Integer[] tests = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 };
-                    // Integer[] tests = {11};
+                    //Integer[] tests = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 };
+                    Integer[] tests = {0};
                     for (int i : tests)
-                        test1(i);
+                        test1(i,100000,100000);
                 } else {
                     System.out.println("Directory: " + dir + " not created");
                 }
