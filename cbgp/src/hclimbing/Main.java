@@ -5052,6 +5052,104 @@ class ConflictGridSearch implements NeighborExplorer {
         return bestMove;
     }
 }
+
+class TabuSearchTwoNodeMove {
+
+    private final int ROW, COL;
+    private final Graph G;
+    private LexMultiValues globalBestEval;
+    private final LexMultiFunctions F;
+    private final List<VarNodePosition> varNodeList;
+    private CBLSGPModel model;
+    int[] dx = { -1, 0, 1, 0 };
+    int[] dy = { 0, -1, 0, 1 };
+    int tbl = 10;
+    int[][][] tabuList;// tabuList[nodeId][x][y] = iteration until which the move is tabu
+    int iteration = 0;// global iteration counter
+
+    public TabuSearchTwoNodeMove(CBLSGPModel model, int ROW, int COL, Graph G, LexMultiFunctions F,
+            List<VarNodePosition> varNodeList) {
+        this.model = model;
+        this.ROW = ROW;
+        this.COL = COL;
+        this.G = G;
+        this.F= F;
+        this.globalBestEval = F.evaluation();
+        this.varNodeList = varNodeList;
+        tabuList = new int[G.getNodes().size()][COL + 1][ROW + 1];
+        for(int i = 0; i < G.getNodes().size(); i++) {
+            for(int x = 0; x <= COL; x++) {
+                for(int y = 0; y <= ROW; y++) {
+                    tabuList[i][x][y] = -1;
+                }
+            }
+        }
+    }
+
+    private boolean isTabu(VarNodePosition varNodePosition, int x, int y) {
+        return tabuList[varNodePosition.id][x][y] > iteration;
+    }
+
+    public Move explore(boolean firstImprovement) {
+        LexMultiValues bestEval = null;
+        Move selectedMove = null;
+        for(VarNodePosition varNodePosition1 : varNodeList) {
+            for(VarNodePosition varNodePosition2 : varNodeList) {
+                if (varNodePosition1.id >= varNodePosition2.id) continue;
+                for(int i1 = 0; i1 < 4; i1++) {
+                    int x1 = varNodePosition1.x() + dx[i1];
+                    int y1 = varNodePosition1.y() + dy[i1];
+                    if (x1 < 0 || x1 > COL || y1 < 0 || y1 > ROW) continue;
+                    for(int i2 = 0; i2 < 4; i2++) {
+                        int x2 = varNodePosition2.x() + dx[i2];
+                        int y2 = varNodePosition2.y() + dy[i2];
+                        if (x2 < 0 || x2 > COL || y2 < 0 || y2 > ROW) continue;
+
+                        LexMultiValues newEval = F.evaluateTwoNodesMove(varNodePosition1, x1, y1, varNodePosition2, x2, y2);
+                        if(!isTabu(varNodePosition1, x1, y1) || !isTabu(varNodePosition2, x2, y2) || newEval.better(globalBestEval)) {
+                            // accept the move 
+                            if(bestEval == null || newEval.better(bestEval)) {
+                                bestEval = newEval;
+                                List<MoveNode> moves = List.of(new MoveNode(varNodePosition1, x1, y1), new MoveNode(varNodePosition2, x2, y2));
+                                selectedMove = new Move(moves, newEval);
+                            }
+                        }                                   
+                    }
+                }
+            }
+        }
+        return selectedMove;
+    }
+
+    public void search(int maxIterations) {
+        Map<Node, NodePosition> bestSolution = new HashMap<>();
+        while(iteration < maxIterations) {
+            Move move = explore(true);
+            if (move == null) break;
+            for(MoveNode moveNode : move.moves) {
+                tabuList[moveNode.varNodePosition.id][moveNode.newX][moveNode.newY] = iteration + tbl;
+                F.propagateOneNodeMove(moveNode.varNodePosition, moveNode.newX, moveNode.newY);
+                model.move(moveNode.varNodePosition, moveNode.newX, moveNode.newY);
+            }
+            //check consistency of the move (in case of other moves affecting the evaluation)
+            if(!F.evaluation().equals(move.values)) {
+                System.out.println("Inconsistent move evaluation at iteration " + iteration + ", Expected: " + move.values + ", Actual: " + F.evaluation());
+                break;
+            }
+
+            System.out.println("Iteration " + iteration + ": Move " + move.moves + " with evaluation " + move.values);
+            if (move.values.better(globalBestEval)) {
+                globalBestEval = move.values;
+                for(VarNodePosition varNodePosition : varNodeList) {
+                    bestSolution.put(G.getNode(varNodePosition.id), new NodePosition(varNodePosition.id,varNodePosition.x(), varNodePosition.y()));
+                }
+                System.out.println("Iteration " + iteration + ": New best solution with evaluation " + globalBestEval);
+            }
+            iteration++;
+        }
+    }
+}   
+
 public class Main {
     static final int numDirections = 8;
     static final Integer[] dirX = { 0, 1, 0, -1, 1, 1, -1, -1 };
@@ -5163,6 +5261,88 @@ public class Main {
     }
 
     public static String dir;
+
+   
+    @SuppressWarnings("unused")
+    public static void test2(){
+        System.out.println("test2");
+        int ROW = 20;
+        int COL = 20;
+        Set<Integer> DX = new HashSet<>();
+        Set<Integer> DY = new HashSet<>();
+
+        int n = 5;
+        List<Node> nodes = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            nodes.add(new Node(i));
+        }
+        int[][] E = { { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 4 }, { 1, 4 } };
+        Graph G = new Graph(nodes);
+        int n_edges = 7; // number of edges
+        List<DoubleLinkedList<Edge>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            adj.add(new DoubleLinkedList<>());
+        }
+        List<Pair<Integer, Integer>> edges = new ArrayList<>();
+        int off_set = 0;
+        for (int i = 0; i < n_edges; i++) {
+            int u = E[i][0];
+            int v = E[i][1];
+            if (u < 0 || v < 0) off_set = 1;
+            edges.add(new Pair<>(u, v));
+        }
+        for (Pair<Integer, Integer> edge : edges) {
+            edge.a += off_set;
+            edge.b += off_set;
+            int u = edge.a;
+            int v = edge.b;  
+
+            Node fromNode = G.getNode(u);
+            Node toNode = G.getNode(v);
+            if (fromNode == null || toNode == null)
+                continue;
+
+            Edge eu = G.addEdge(fromNode, toNode);
+            adj.get(u).add(eu);
+            Edge ev = G.addEdge(toNode, fromNode);
+            adj.get(v).add(ev);
+        }
+        
+        for (int i = 0; i <= COL; i++)            DX.add(i);
+        for (int i = 0; i <= ROW; i++)            DY.add(i);
+        Map<Node, VarNodePosition> varPos = new HashMap<>();
+        List<VarNodePosition> varPosList = new ArrayList<>();   
+        for (int i = 0; i < n; i++) {
+            varPos.put(nodes.get(i), new VarNodePosition(i, DX, DY));
+            varPosList.add(varPos.get(nodes.get(i)));
+        }
+
+         CBLSGPModel model = new CBLSGPModel();
+        for (Node node : G.getNodes()) {
+            VarNodePosition v = varPos.get(node);
+            model.addVarNode(v);
+        }
+        NumberIntersectionEdges F3 = new NumberIntersectionEdges(G, varPos);// to be minimized
+        MinAngle F2 = new MinAngle(G, varPos);// to be maximized
+        MinDistanceEdge F1 = new MinDistanceEdge(G, varPos);// to be maximized
+        MinDistanceNodeEdge F4 = new MinDistanceNodeEdge(G, varPos);// to be maximized
+
+        LexMultiFunctions F = new LexMultiFunctions();
+        F.add(F3); // NumberOfIntersectionEdges
+        F.add(F4); // MinDistanceNodeEdge
+        F.add(F2); // MinAngle
+        F.add(F1); // MinDistanceEdge
+
+
+        model.close();
+        LexMultiValues values = F.evaluation();
+        generateInitialSolution(ROW, COL, model, G, adj);
+        TabuSearchTwoNodeMove tsSearcher = new TabuSearchTwoNodeMove(model, ROW, COL, G, F, varPosList);
+        tsSearcher.search(1000);
+        for (VarNodePosition v : varPosList) {
+            System.out.printf("Node %d: (%d, %d)\n", v.id, v.x(), v.y());
+        }
+    }
 
     @SuppressWarnings("unused")
     public static void test1(int tt, int timeLimit, int maxIterations) throws IOException {
@@ -5598,6 +5778,8 @@ public class Main {
 
     @SuppressWarnings("unused")
     public static void main(String[] args) {
+        test2();
+        if(true)    return;
         try {
             // noinspection StatementWithEmptyBody,ConstantValue
             if (true) {
