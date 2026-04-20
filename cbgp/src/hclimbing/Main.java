@@ -1647,14 +1647,16 @@ class MinDistanceEdge implements Function{
                 if (d > -1.) {
                     visited.add(d);
                 }
-                mn = Math.min(mn, Geometry.distance(posU.x(), posU.y(), newX1, newY1));
             }
             node = g.getNode(node2.id);
             for (Edge e : adj.get(node.id)) {
                 Node u = e.getRemaining(node);
                 VarNodePosition posU = positions.get(u);
                 if (posU.x() == -1 || posU.y() == -1) continue;
-                if (posU == node1) continue;
+                if (posU == node1) {
+                    // mn = Math.min(mn, Geometry.distance(newX1, newY1, newX2, newY2));
+                    continue;
+                }
                 double d = distances.getOrDefault(encode(e), -1.);
                 if (d > -1.) {
                     visited.add(d);
@@ -1680,7 +1682,8 @@ class MinDistanceEdge implements Function{
             if (oldD > -1.) {
                 visited.add(oldD);
             }
-            double d = Geometry.distance(posU.x(), posU.y(), newX1, newY1);
+            // double d = Geometry.distance(posU.x(), posU.y(), newX1, newY1);
+            double d = posU != node2 ? Geometry.distance(posU.x(), posU.y(), newX1, newY1) : Geometry.distance(newX2, newY2, newX1, newY1);
             min = Math.min(min, d);
         }
         node = g.getNode(node2.id);
@@ -2312,8 +2315,10 @@ class MinAngle implements Function {
         }
 
         propagateOneNodeMove(node1, newX1, newY1);
+        node1.assign(newX1, newY1);
         double minA = evaluateOneNodeMove(node2, newX2, newY2);
         propagateOneNodeMove(node1, oldX1, oldY1);
+        node1.assign(oldX1, oldY1);
         
         return minA;
     }
@@ -2611,7 +2616,7 @@ class NumberIntersectionEdges implements Function{
 //                }
                 
                 // if(sj != null && si.intersect(sj) != null) {
-                if (sj != null && si.fastIntersect(si)) {
+                if (sj != null && si.fastIntersect(sj)) {
                     intersectMap.get(encode(ei)).add(encode(ej));
                     intersectMap.get(encode(ej)).add(encode(ei));
                     totalIntersections++;
@@ -3273,7 +3278,7 @@ class MinDistanceNodeEdge implements Function {
                     visited.add(oldD);
                 }
 
-                Segment2D segment = createSegment(edge.toNode, newX, newY);
+                Segment2D segment = createSegment(edge.getRemaining(node), newX, newY);
                 if (segment != null) {
                     double distance = pointNode.distance(segment);
                     min = Math.min(min, distance);
@@ -3324,7 +3329,7 @@ class MinDistanceNodeEdge implements Function {
             for (Edge edge : adj.get(node.id)) {
                 if (edge.toNode.id == adjNode.id) continue;
                 long key = encode(adjNode, edge);
-                Segment2D segment = createSegment(edge.toNode, newX, newY);;
+                Segment2D segment = createSegment(edge.getRemaining(node), newX, newY);;
                 if (segment != null) {
                     double distance = pointNode.distance(segment);
                     double oldD = distances.getOrDefault(key, -1.);
