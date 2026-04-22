@@ -2273,6 +2273,12 @@ class MinAngle implements Function {
             }
         }
 
+        for (int i = 0; i < addedAngles.size(); i++) {
+            double a = addedAngles.get(i);
+            if (removedAngles.remove(a)) {
+                addedAngles.set(i, Double.POSITIVE_INFINITY); 
+            }
+        }
         double minA = Double.POSITIVE_INFINITY;
         for (double a : addedAngles) {
             minA = Math.min(minA, a);
@@ -5364,6 +5370,7 @@ public class Main {
             VarNodePosition v = varPos.get(node);
             model.addVarNode(v);
         }
+        generateInitialSolution(ROW, COL, model, G, adj);
         NumberIntersectionEdges F3 = new NumberIntersectionEdges(G, varPos);// to be minimized
         MinAngle F2 = new MinAngle(G, varPos);// to be maximized
         MinDistanceEdge F1 = new MinDistanceEdge(G, varPos);// to be maximized
@@ -5378,7 +5385,6 @@ public class Main {
 
         model.close();
         LexMultiValues values = F.evaluation();
-        generateInitialSolution(ROW, COL, model, G, adj);
         TabuSearchTwoNodeMove tsSearcher = new TabuSearchTwoNodeMove(model, ROW, COL, G, F, varPosList);
         tsSearcher.search(1000);
         for (VarNodePosition v : varPosList) {
