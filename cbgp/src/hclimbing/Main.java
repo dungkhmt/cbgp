@@ -5125,11 +5125,45 @@ class TabuSearchTwoNodeMove {
         }
         return selectedMove;
     }
+    public Move exploreLarge(boolean firstImprovement) {
+        LexMultiValues bestEval = null;
+        Move selectedMove = null;
+        for(VarNodePosition varNodePosition1 : varNodeList) {
+            for(VarNodePosition varNodePosition2 : varNodeList) {
+                if (varNodePosition1.id >= varNodePosition2.id) continue;
+                for(int x1= 0; x1 <= COL; x1++) {
+                    for(int y1 = 0; y1 <= ROW; y1++) {
+                        if (x1 == varNodePosition1.x() && y1 == varNodePosition1.y()) continue;
+                         for(int x2 = 0; x2 <= COL; x2++) {
+                            for(int y2 = 0; y2 <= ROW; y2++) {
+                                if (x2 == varNodePosition2.x() && y2 == varNodePosition2.y()) continue;
+
+                                LexMultiValues newEval = F.evaluateTwoNodesMove(varNodePosition1, x1, y1, varNodePosition2, x2, y2);
+                                if(!isTabu(varNodePosition1, x1, y1) || !isTabu(varNodePosition2, x2, y2) || newEval.better(globalBestEval)) {
+                                    // accept the move 
+                                    if(bestEval == null || newEval.better(bestEval)) {
+                                        bestEval = newEval;
+                                        List<MoveNode> moves = List.of(new MoveNode(varNodePosition1, x1, y1), new MoveNode(varNodePosition2, x2, y2));
+                                        selectedMove = new Move(moves, newEval);
+                                    }
+                                }                                   
+                            }
+                        }
+                    }
+                }   
+
+                
+            }
+        }
+        return selectedMove;
+    }
 
     public void search(int maxIterations) {
         Map<Node, NodePosition> bestSolution = new HashMap<>();
         while(iteration < maxIterations) {
-            Move move = explore(true);
+            //Move move = explore(true);
+            Move move = exploreLarge(true);
+
             if (move == null) break;
             for(MoveNode moveNode : move.moves) {
                 tabuList[moveNode.varNodePosition.id][moveNode.newX][moveNode.newY] = iteration + tbl;
@@ -5271,8 +5305,11 @@ public class Main {
     @SuppressWarnings("unused")
     public static void test2(){
         System.out.println("test2");
-        int ROW = 20;
-        int COL = 20;
+        //int ROW = 20;
+        //int COL = 20;
+        int ROW = 10;
+        int COL = 10;
+
         Set<Integer> DX = new HashSet<>();
         Set<Integer> DY = new HashSet<>();
 
