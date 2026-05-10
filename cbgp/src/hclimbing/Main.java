@@ -1973,6 +1973,43 @@ class MinDistanceEdge implements Function{
 //     public void initPropagation() {
 //     }
 // }
+
+
+class SumAngle implements Function {
+    // TODO by DungNT
+
+    @Override
+    public String toString() {
+        return "sumAngle=" ;
+    }
+
+    public SumAngle(Graph g, Map<Node, VarNodePosition> positions) {
+ 
+    }
+
+
+    public double evaluation(){
+        return 0;
+    }
+
+    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
+        return 0;
+    }
+
+    public double evaluateTwoNodesMove(VarNodePosition node1, int newX1, int newY1, VarNodePosition node2, int newX2, int newY2){
+        return 0;
+    }
+
+    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){  
+        return ;
+    }
+
+    public void initPropagation(){
+        return ;
+    }
+
+}
+
 class MinAngle implements Function {
     Graph g;
     List<List<Edge>> adj;
@@ -5319,14 +5356,19 @@ public class Main {
         Set<Integer> DX = new HashSet<>();
         Set<Integer> DY = new HashSet<>();
 
-        int n = 5;
+        //int n = 5;
+        //int[][] E = { { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 4 }, { 1, 4 } };
+        int n = 10;
+        int[][] E = { { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 4 }, { 1, 4 },{4,5}, {5,6}, {6,7}, {7,8}, {8,9}, {9,0} };
+        
+
         List<Node> nodes = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             nodes.add(new Node(i));
         }
-        int[][] E = { { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 4 }, { 1, 4 } };
+        
         Graph G = new Graph(nodes);
-        int n_edges = 7; // number of edges
+        int n_edges = E.length; // number of edges
         List<DoubleLinkedList<Edge>> adj = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             adj.add(new DoubleLinkedList<>());
@@ -5386,9 +5428,9 @@ public class Main {
         model.close();
         LexMultiValues values = F.evaluation();
         TabuSearchTwoNodeMove tsSearcher = new TabuSearchTwoNodeMove(model, ROW, COL, G, F, varPosList);
-        tsSearcher.search(1000);
+        tsSearcher.search(20);
         for (VarNodePosition v : varPosList) {
-            System.out.printf("Node %d: (%d, %d)\n", v.id, v.x(), v.y());
+            System.out.printf("%d: (%d, %d)\n", v.id, v.x(), v.y());
         }
     }
 
