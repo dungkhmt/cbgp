@@ -1977,36 +1977,280 @@ class MinDistanceEdge implements Function{
 
 class SumAngle implements Function {
     // TODO by DungNT
+    Graph g;
+    List<List<Edge>> adj;
+    Map<Node, VarNodePosition> positions;
+    Map<Node, TreeSet<NodeAngle>> nodeNeighbors = new HashMap<>();
+    Map<Integer, Map<Integer, NodeAngle>> nodeAngleMap = new HashMap<>();
+    List<TreeMultiset<Double>> angles = new ArrayList<>();
+    // List<List<Double>> angles = new ArrayList<>();
+    double sumAngleValue = 0.0;
 
     @Override
     public String toString() {
-        return "sumAngle=" ;
+        return "sumAngle=" + sumAngleValue + " ";
     }
 
+    private static class NodeAngle implements Comparable<NodeAngle> {
+        Node node;
+        double angle;
+        
+        NodeAngle(Node node, double angle) {
+            this.node = node;
+            this.angle = angle;
+        }
+        
+        @Override
+        public int compareTo(NodeAngle o) {
+            if (Math.abs(angle - o.angle) >= Point2D.eps) {
+                return Double.compare(angle, o.angle);
+            }
+            return Integer.compare(node.id, o.node.id);
+        }
+        
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof NodeAngle na)) return false;
+            // return node.id == na.node.id && Double.compare(angle, na.angle) == 0;
+            return node.id == na.node.id && Math.abs(angle - na.angle) < Point2D.eps;
+        }
+        
+    }
+    
     public SumAngle(Graph g, Map<Node, VarNodePosition> positions) {
- 
+        this.g = g;
+        this.positions = positions;
+        adj = new ArrayList<>();
+
+        Map<Integer, Boolean> marked = new HashMap<>();
+        for (Node node : g.getNodes()) {
+            nodeAngleMap.put(node.id, new HashMap<>());
+            nodeNeighbors.put(node, new TreeSet<>());
+            angles.add(new TreeMultiset<>(new DoubleCompare()));
+            // angles.add(new ArrayList<>());
+            adj.add(new ArrayList<>());
+            for (Edge e : g.getEdges(node)) {
+                int u = Math.min(e.fromNode.id, e.toNode.id);
+                int v = Math.max(e.fromNode.id, e.toNode.id);
+                int eId = u * g.getNodes().size() + v;
+                if (marked.containsKey(eId)) continue;
+                marked.put(eId, true);
+                adj.get(node.id).add(e);
+            }
+            marked.clear();
+        }
+        
+        for (Node node : g.getNodes()) {
+            VarNodePosition nodePos = positions.get(node);
+            updateNodeAngles(node, nodePos.x(), nodePos.y());
+        }
+    }
+    
+    private void updateNodeAngles(Node node, int newX, int newY) {
+        if (newX == -1 && newY == -1) return;
+
+        TreeSet<NodeAngle> neighbors = nodeNeighbors.get(node);
+        TreeMultiset<Double> angleN = angles.get(node.id);
+        // List<Double> angleN = angles.get(node.id);
+        if (neighbors.size() > 1) {
+            // sumAngleValue -= Math.pow(Math.sin(angleN.first()), 2);
+            for (double angle : angleN) {
+                sumAngleValue += Math.pow(Math.cos(angle), 2);
+                // if (angleN.size() == 2) break;
+            }
+            angleN.clear();
+        }
+        
+        neighbors.clear();
+        for (Edge e : adj.get(node.id)) {
+            Node neighbor = e.getRemaining(node);
+            VarNodePosition neighborPos = positions.get(neighbor);
+            
+            if (neighborPos.x() != -1 && neighborPos.y() != -1) {
+                double angle = Math.atan2(neighborPos.y() - newY, neighborPos.x() - newX);
+                NodeAngle nodeAngle = new NodeAngle(neighbor, angle);
+                nodeAngleMap.get(node.id).put(neighbor.id, nodeAngle);
+                neighbors.add(nodeAngle);
+            }
+        }
+        
+        if (neighbors.size() > 1) {
+            List<NodeAngle> neighborList = new ArrayList<>(neighbors);
+            int m = neighborList.size();
+            for (int i = 0; i < m; i++) {
+                NodeAngle current = neighborList.get(i);
+                NodeAngle next = neighborList.get((i + 1) % neighborList.size());
+                double angle = (next.angle - current.angle + 2 * Math.PI) % (2 * Math.PI);
+                angleN.add(angle);
+            }
+
+            // sumAngleValue += Math.pow(Math.sin(angleN.first()), 2);
+            for (double angle : angleN) {
+                sumAngleValue -= Math.pow(Math.cos(angle), 2);
+                // if (m == 2) break;
+            }
+        }
+    }
+    
+    private void updateNeighborAngle(Node node, Node movedNode, double newAngle, boolean debug) {
+        TreeSet<NodeAngle> neighbors = nodeNeighbors.get(node);
+        
+        NodeAngle oldNodeAngle = null;
+        Map<Integer, NodeAngle> nodeAngles = nodeAngleMap.computeIfAbsent(node.id, k -> new HashMap<>());
+        try {
+            oldNodeAngle = nodeAngles.get(movedNode.id);
+        } catch (Exception e) {
+        }
+
+        TreeMultiset<Double> angleN = angles.get(node.id);
+        // List<Double> angleN = angles.get(node.id);
+        if (oldNodeAngle != null) {
+            if (!angleN.isEmpty()) {
+                // sumAngleValue -= angleN.first();
+                // sumAngleValue -= Math.pow(Math.sin(angleN.first()), 2);
+                for (double angle : angleN) {
+                    sumAngleValue += Math.pow(Math.cos(angle), 2);
+                }
+            }
+            if (neighbors.size() > 1) {
+                NodeAngle prev = neighbors.lower(oldNodeAngle);
+                if (prev == null) prev = neighbors.last();
+
+                NodeAngle next = neighbors.higher(oldNodeAngle);
+                if (next == null) next = neighbors.first();
+
+                double prevOldAngle = (oldNodeAngle.angle - prev.angle + 2 * Math.PI) % (2 * Math.PI);
+                angleN.remove(prevOldAngle);
+                double oldNextAngle = (next.angle - oldNodeAngle.angle + 2 * Math.PI) % (2 * Math.PI);
+                angleN.remove(oldNextAngle);
+                if (neighbors.size() > 2) {
+                    double prevNextAngle = (next.angle - prev.angle + 2 * Math.PI) % (2 * Math.PI);
+                    angleN.add(prevNextAngle);
+                }
+            }
+
+            neighbors.remove(oldNodeAngle);
+        }
+
+        NodeAngle newNodeAngle = new NodeAngle(movedNode, newAngle);
+        nodeAngles.put(movedNode.id, newNodeAngle);
+        neighbors.add(newNodeAngle);
+
+        if (neighbors.size() > 1) {
+            NodeAngle prev = neighbors.lower(newNodeAngle);
+            if (prev == null) prev = neighbors.last();
+            
+            NodeAngle next = neighbors.higher(newNodeAngle);
+            if (next == null) next = neighbors.first();
+            
+            double prevNewAngle = (newNodeAngle.angle - prev.angle + 2 * Math.PI) % (2 * Math.PI);
+            angleN.add(prevNewAngle);
+            double newNextAngle = (next.angle - newNodeAngle.angle + 2 * Math.PI) % (2 * Math.PI);
+            angleN.add(newNextAngle);
+            if (neighbors.size() > 2) {
+                double prevNextAngle = (next.angle - prev.angle + 2 * Math.PI) % (2 * Math.PI);
+                angleN.remove(prevNextAngle);
+            }
+
+            // sumAngleValue += angleN.first();
+            // sumAngleValue += Math.pow(Math.sin(angleN.first()), 2);
+            for (double angle : angleN) {
+                sumAngleValue -= Math.pow(Math.cos(angle), 2);
+            }
+        }
     }
 
-
-    public double evaluation(){
-        return 0;
+    @Override
+    public double evaluation() {
+        return sumAngleValue;
     }
 
-    public double evaluateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){
-        return 0;
+    @Override
+    public double evaluateOneNodeMove(VarNodePosition v, int newX, int newY) {
+        Node node = g.getNode(v.id);
+        int oldX = v.x(), oldY = v.y();
+        
+        if (oldX == newX && oldY == newY) {
+            return evaluation();
+        }
+        if (newX == -1 && newY == -1) {
+            double current = sumAngleValue;
+            if (nodeNeighbors.get(node).size() > 1) {
+                // current -= angles.get(node.id).first();
+                // current -= Math.pow(Math.cos(angles.get(node.id).first()), 2);
+                for (double angle : angles.get(node.id)) {
+                    current += Math.pow(Math.cos(angle), 2);
+                }
+            }
+            return current;
+        }
+
+        updateNodeAngles(node, newX, newY);
+        for (Edge e : adj.get(node.id)) {
+            Node neighbor = e.getRemaining(node);
+            VarNodePosition neighborPos = positions.get(neighbor);
+            if (neighborPos.x() == -1 && neighborPos.y() == -1) continue;
+            double newAngle = Math.atan2(newY - neighborPos.y(), newX - neighborPos.x());
+            updateNeighborAngle(neighbor, node, newAngle, false);
+        }
+        double newSumAngle = sumAngleValue;
+
+        updateNodeAngles(node, oldX, oldY);
+        for (Edge e : adj.get(node.id)) {
+            Node neighbor = e.getRemaining(node);
+            VarNodePosition neighborPos = positions.get(neighbor);
+            if (neighborPos.x() == -1 && neighborPos.y() == -1) continue;
+            double oldAngle = Math.atan2(oldY - neighborPos.y(), oldX - neighborPos.x());
+            updateNeighborAngle(neighbor, node, oldAngle, false);
+        }
+
+        return newSumAngle;
     }
 
     public double evaluateTwoNodesMove(VarNodePosition node1, int newX1, int newY1, VarNodePosition node2, int newX2, int newY2){
-        return 0;
+        int oldX1 = node1.x(), oldY1 = node1.y();
+        int oldX2 = node2.x(), oldY2 = node2.y();
+        if (oldX1 == newX1 && oldY1 == newY1 && oldX2 == newX2 && oldY2 == newY2) {
+            return evaluation();
+        }
+        if (oldX2 == newX2 && oldY2 == newY2) {
+            return evaluateOneNodeMove(node1, newX1, newY1);
+        }
+        if (oldX1 == newX1 && oldY1 == newY1) {
+            return evaluateOneNodeMove(node2, newX2, newY2);
+        }
+
+        propagateOneNodeMove(node1, newX1, newY1);
+        node1.assign(newX1, newY1);
+        double sumA = evaluateOneNodeMove(node2, newX2, newY2);
+        propagateOneNodeMove(node1, oldX1, oldY1);
+        node1.assign(oldX1, oldY1);
+        return sumA;
     }
 
-    public void propagateOneNodeMove(VarNodePosition varNodePosition, int newX, int newY){  
-        return ;
+    @Override
+    public void propagateOneNodeMove(VarNodePosition v, int newX, int newY) {
+        Node node = g.getNode(v.id);
+        int oldX = v.x(), oldY = v.y();
+
+        if (oldX == newX && oldY == newY || newX == -1 && newY == -1) {
+            return;
+        }
+
+        updateNodeAngles(node, newX, newY);
+        for (Edge e : adj.get(node.id)) {
+            Node neighbor = e.getRemaining(node);
+            VarNodePosition neighborPos = positions.get(neighbor);
+            if (neighborPos.x() == -1 && neighborPos.y() == -1) continue;
+            double newAngle = Math.atan2(newY - neighborPos.y(), newX - neighborPos.x());
+            updateNeighborAngle(neighbor, node, newAngle, true);
+        }
+    }
+    @Override
+    public void initPropagation() {
+
     }
 
-    public void initPropagation(){
-        return ;
-    }
 
 }
 
