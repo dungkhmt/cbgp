@@ -85,7 +85,7 @@ class Geometry {
 
 class Point2D {
     public static Point2D infPoint = new Point2D(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
-    public static double eps = 1e-12;
+    public static double eps = 1e-6;//1e-12;
     private double x, y;
 
     public Point2D(double x, double y) {
@@ -5445,11 +5445,16 @@ class TabuSearchTwoNodeMove {
         return selectedMove;
     }
 
-    public void search(int maxIterations) {
+    public void search(int maxIterations, boolean largeNeighborhood) {
         Map<Node, NodePosition> bestSolution = new HashMap<>();
         while(iteration < maxIterations) {
-            //Move move = explore(true);
-            Move move = exploreLarge(true);
+            Move move = null;
+            if (largeNeighborhood) {
+                move = exploreLarge(true);
+            } else {
+                move = explore(true);
+            }
+            //Move move = exploreLarge(true);
 
             if (move == null) break;
             for(MoveNode moveNode : move.moves) {
@@ -5473,6 +5478,17 @@ class TabuSearchTwoNodeMove {
             }
             iteration++;
         }
+
+        for(Node node : G.getNodes()) {
+            NodePosition pos = bestSolution.get(node);
+            if (pos != null) {
+                System.out.println("Final BEST Node " + node.id + ": (" + pos.x_pos + ", " + pos.y_pos + ")");
+                VarNodePosition v = model.getVarNode(node.id);
+                F.propagateOneNodeMove(v, pos.x_pos, pos.y_pos);
+                model.move(v, pos.x_pos, pos.y_pos);
+            }
+        }
+        System.out.println("Tabu Search completed. Best evaluation: " + F.evaluation());
     }
 }   
 
@@ -5602,10 +5618,15 @@ public class Main {
 
         //int n = 5;
         //int[][] E = { { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 4 }, { 1, 4 } };
-        int n = 10;
-        int[][] E = { { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 4 }, { 1, 4 },{4,5}, {5,6}, {6,7}, {7,8}, {8,9}, {9,0} };
         
-
+        // planar graph with 10 nodes and 15 edges
+        //int n = 10;
+        //int[][] E = { { 0, 1 }, { 0, 2 }, { 1, 2 }, { 2, 3 }, { 2, 4 }, { 3, 4 }, { 1, 4 },{4,5}, {5,6}, {6,7}, {7,8}, {8,9}, {9,0} };
+        
+        // complete graph with 5 nodes
+        int n = 5;
+        int[][] E = { { 0, 1 }, { 0, 2 }, { 0, 3 }, { 0, 4 }, { 1, 2 }, { 1, 3 }, { 1, 4 },{2,3}, {2,4}, {3,4} };
+    
         List<Node> nodes = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             nodes.add(new Node(i));
@@ -5656,25 +5677,39 @@ public class Main {
             VarNodePosition v = varPos.get(node);
             model.addVarNode(v);
         }
-        generateInitialSolution(ROW, COL, model, G, adj);
+        //generateInitialSolution(ROW, COL, model, G, adj);
         NumberIntersectionEdges F3 = new NumberIntersectionEdges(G, varPos);// to be minimized
         MinAngle F2 = new MinAngle(G, varPos);// to be maximized
         MinDistanceEdge F1 = new MinDistanceEdge(G, varPos);// to be maximized
         MinDistanceNodeEdge F4 = new MinDistanceNodeEdge(G, varPos);// to be maximized
+        SumAngle F5 = new SumAngle(G, varPos);// to be minimized
 
         LexMultiFunctions F = new LexMultiFunctions();
         F.add(F3); // NumberOfIntersectionEdges
         F.add(F4); // MinDistanceNodeEdge
         F.add(F2); // MinAngle
         F.add(F1); // MinDistanceEdge
-
+        F.add(F5); // SumAngle
 
         model.close();
+
+        Random R = new Random(23480329);
+        for (VarNodePosition v : varPosList) {
+            int x = Math.abs(R.nextInt()%(COL + 1));
+            int y = Math.abs(R.nextInt()%(ROW + 1));
+            F.propagateOneNodeMove(v, x, y);
+            model.move(v, x, y);
+
+            System.out.printf("%d: (%d, %d),\n", v.id, v.x(), v.y());
+        }
+
         LexMultiValues values = F.evaluation();
         TabuSearchTwoNodeMove tsSearcher = new TabuSearchTwoNodeMove(model, ROW, COL, G, F, varPosList);
-        tsSearcher.search(20);
+        tsSearcher.search(10,true);
+        //tsSearcher.search(2000, false);
+        
         for (VarNodePosition v : varPosList) {
-            System.out.printf("%d: (%d, %d)\n", v.id, v.x(), v.y());
+            System.out.printf("%d: (%d, %d),\n", v.id, v.x(), v.y());
         }
     }
 
