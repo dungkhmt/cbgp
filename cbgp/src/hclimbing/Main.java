@@ -5678,6 +5678,14 @@ public class Main {
             model.addVarNode(v);
         }
         //generateInitialSolution(ROW, COL, model, G, adj);
+        Random R = new Random(23480329);
+        for (VarNodePosition v : varPosList) {
+            int x = Math.abs(R.nextInt()%(COL + 1));
+            int y = Math.abs(R.nextInt()%(ROW + 1));
+            model.move(v, x, y);
+            System.out.printf("%d: (%d, %d),\n", v.id, v.x(), v.y());
+        }
+
         NumberIntersectionEdges F3 = new NumberIntersectionEdges(G, varPos);// to be minimized
         MinAngle F2 = new MinAngle(G, varPos);// to be maximized
         MinDistanceEdge F1 = new MinDistanceEdge(G, varPos);// to be maximized
@@ -5693,15 +5701,7 @@ public class Main {
 
         model.close();
 
-        Random R = new Random(23480329);
-        for (VarNodePosition v : varPosList) {
-            int x = Math.abs(R.nextInt()%(COL + 1));
-            int y = Math.abs(R.nextInt()%(ROW + 1));
-            F.propagateOneNodeMove(v, x, y);
-            model.move(v, x, y);
 
-            System.out.printf("%d: (%d, %d),\n", v.id, v.x(), v.y());
-        }
 
         LexMultiValues values = F.evaluation();
         TabuSearchTwoNodeMove tsSearcher = new TabuSearchTwoNodeMove(model, ROW, COL, G, F, varPosList);
